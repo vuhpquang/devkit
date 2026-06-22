@@ -56,6 +56,11 @@ export function CommandPalette({ open, onClose, onSelect }: Props) {
               >
                 <span className="text-zinc-400 text-xs mr-2">{t.category}</span>
                 {t.name}
+                {t.online && (
+                  <span className="text-[10px] px-1 py-0 rounded bg-sky-500/15 text-sky-400 font-medium ml-1 leading-tight">
+                    online
+                  </span>
+                )}
               </button>
             </li>
           ))}

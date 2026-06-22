@@ -21,6 +21,16 @@
       "csp": null
     }
   },
+  "plugins": {
+    "http": {
+      "scope": [
+        "https://cloudflare-dns.com/*",
+        "http://ip-api.com/*",
+        "https://open.er-api.com/*",
+        "https://registry.npmjs.org/*"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

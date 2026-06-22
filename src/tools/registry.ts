@@ -6,6 +6,7 @@ export const CATEGORY_ORDER: Category[] = [
   "Converters",
   "Encoders",
   "Generators",
+  "Network",
 ];
 
 // Tools are appended here as they are implemented.
@@ -44,3 +45,13 @@ import { tool as uuidTool } from "./uuid";
 tools.push(uuidTool);
 import { tool as loremTool } from "./lorem";
 tools.push(loremTool);
+import { tool as whoisTool } from "./whois";
+tools.push(whoisTool);
+import { tool as dnsLookupTool } from "./dns-lookup";
+tools.push(dnsLookupTool);
+import { tool as ipInfoTool } from "./ip-info";
+tools.push(ipInfoTool);
+import { tool as npmVersionTool } from "./npm-version";
+tools.push(npmVersionTool);
+import { tool as currencyTool } from "./currency";
+tools.push(currencyTool);

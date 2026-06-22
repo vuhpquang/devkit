@@ -38,13 +38,18 @@ export function Sidebar({ activeId, onSelect, query, onQuery }: Props) {
                   key={t.id}
                   onClick={() => onSelect(t.id)}
                   className={
-                    "w-full text-left px-2 py-1.5 rounded-md text-sm " +
+                    "w-full text-left px-2 py-1.5 rounded-md text-sm flex items-center " +
                     (t.id === activeId
                       ? "bg-blue-100 dark:bg-blue-900/40"
                       : "hover:bg-zinc-100 dark:hover:bg-zinc-800")
                   }
                 >
                   {t.name}
+                  {t.online && (
+                    <span className="text-[10px] px-1 py-0 rounded bg-sky-500/15 text-sky-400 font-medium ml-1 leading-tight">
+                      online
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

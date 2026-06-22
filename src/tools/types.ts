@@ -5,7 +5,8 @@ export type Category =
   | "Diff"
   | "Converters"
   | "Encoders"
-  | "Generators";
+  | "Generators"
+  | "Network";
 
 export interface ToolDef {
   id: string;
@@ -13,4 +14,5 @@ export interface ToolDef {
   category: Category;
   keywords: string[];
   component: ComponentType;
+  online?: boolean;
 }
