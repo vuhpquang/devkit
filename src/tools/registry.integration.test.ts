@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { tools } from "./registry";
 
 describe("registry integration", () => {
-  it("registers all 14 v1 tools", () => {
-    expect(tools).toHaveLength(14);
+  it("registers all 19 tools (14 v1 + 5 v1.5 network)", () => {
+    expect(tools).toHaveLength(19);
   });
   it("every tool has a component and unique id", () => {
     const ids = new Set<string>();
@@ -13,8 +13,15 @@ describe("registry integration", () => {
       ids.add(t.id);
     }
   });
-  it("covers all five categories", () => {
+  it("covers all six categories including Network", () => {
     const cats = new Set(tools.map((t) => t.category));
-    expect([...cats].sort()).toEqual(["Converters", "Diff", "Encoders", "Formatters", "Generators"]);
+    expect([...cats].sort()).toEqual(["Converters", "Diff", "Encoders", "Formatters", "Generators", "Network"]);
+  });
+  it("all Network tools have online: true", () => {
+    const networkTools = tools.filter((t) => t.category === "Network");
+    expect(networkTools.length).toBe(5);
+    for (const t of networkTools) {
+      expect(t.online).toBe(true);
+    }
   });
 });
