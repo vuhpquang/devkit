@@ -29,6 +29,8 @@ import { tool as textDiffTool } from "./text-diff";
 tools.push(textDiffTool);
 import { tool as jsonYamlTool } from "./json-yaml";
 tools.push(jsonYamlTool);
+import { tool as jsToJsonTool } from "./js-to-json";
+tools.push(jsToJsonTool);
 import { tool as timestampTool } from "./timestamp";
 tools.push(timestampTool);
 import { tool as numberBaseTool } from "./number-base";
