@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ThemeProvider, useTheme } from "./app/theme";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
+import { About } from "./app/About";
 import { useActiveTool } from "./app/useActiveTool";
 import { getToolById } from "./tools/registry";
 
@@ -22,6 +23,7 @@ function Shell() {
   const { activeId, setActiveId } = useActiveTool();
   const [query, setQuery] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const active = activeId ? getToolById(activeId) : undefined;
   const Active = active?.component;
 
@@ -42,7 +44,15 @@ function Shell() {
       <main className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center justify-between p-2 border-b border-zinc-200 dark:border-zinc-800">
           <span className="text-xs text-zinc-400 pl-2">Press ⌘K / Ctrl+K to search</span>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2 py-1 text-sm rounded-md border border-zinc-300 dark:border-zinc-700"
+              onClick={() => setAboutOpen(true)}
+            >
+              About
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
         <div className="flex-1 min-h-0">
           {Active ? (
@@ -54,6 +64,7 @@ function Shell() {
           )}
         </div>
       </main>
+      <About open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}

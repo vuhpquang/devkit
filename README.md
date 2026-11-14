@@ -86,3 +86,7 @@ projects/devkit/
 
 Each tool is self-contained and registered in `src/tools/registry.ts`. Adding a tool =
 create a folder exporting a `ToolDef` and append one import + `tools.push(...)` line.
+
+---
+
+© 2026 Ha Phung Quang Vu · [vuhpquang.com](https://vuhpquang.com) · [GitHub](https://github.com/vuhpquang) · [LinkedIn](https://www.linkedin.com/in/vuhpquang/)
