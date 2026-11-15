@@ -1,0 +1,1 @@
+identifier "com.quangvu.devkit" and certificate leaf = H"726767db47763fc10e2cae2694fad2f75088b759"
