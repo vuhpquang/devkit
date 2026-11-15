@@ -57,6 +57,11 @@ npm run tauri build
 Output bundles are written to `src-tauri/target/release/bundle/` (e.g. `.dmg`/`.app`
 on macOS, `.msi`/`.exe` on Windows, `.deb`/`.AppImage` on Linux).
 
+## Release (macOS)
+
+`INSTALL=1 scripts/release.sh X.Y.Z notes.md` builds a signed `DevKit-X.Y.Z.zip` and publishes it as a
+GitHub release; DevKit installs and updates through App Depot. Details in [`CLAUDE.md`](CLAUDE.md).
+
 ## Test
 
 Unit tests (Vitest) cover every tool's pure logic:
