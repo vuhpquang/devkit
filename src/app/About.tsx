@@ -82,6 +82,7 @@ export function About({ open: isOpen, onClose }: Props) {
           </button>
         </div>
         <hr className="my-4 border-zinc-200 dark:border-zinc-800" />
+        <img src="/author-logo.png" alt="" width={32} height={32} className="mx-auto mb-2 rounded-full" />
         <p>
           <span className="text-zinc-500 dark:text-zinc-400">Made by </span>
           <span className="font-semibold">{AUTHOR.name}</span>
