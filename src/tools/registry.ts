@@ -6,6 +6,8 @@ export const CATEGORY_ORDER: Category[] = [
   "Converters",
   "Encoders",
   "Generators",
+  "Text",
+  "Design",
   "Network",
 ];
 
@@ -57,3 +59,29 @@ import { tool as npmVersionTool } from "./npm-version";
 tools.push(npmVersionTool);
 import { tool as currencyTool } from "./currency";
 tools.push(currencyTool);
+import { tool as regexTesterTool } from "./regex-tester";
+tools.push(regexTesterTool);
+import { tool as caseConverterTool } from "./case-converter";
+tools.push(caseConverterTool);
+import { tool as markdownPreviewTool } from "./markdown-preview";
+tools.push(markdownPreviewTool);
+import { tool as htmlEntitiesTool } from "./html-entities";
+tools.push(htmlEntitiesTool);
+import { tool as urlParserTool } from "./url-parser";
+tools.push(urlParserTool);
+import { tool as colorConverterTool } from "./color-converter";
+tools.push(colorConverterTool);
+import { tool as cronParserTool } from "./cron-parser";
+tools.push(cronParserTool);
+import { tool as jsonCsvTool } from "./json-csv";
+tools.push(jsonCsvTool);
+import { tool as chmodCalculatorTool } from "./chmod-calculator";
+tools.push(chmodCalculatorTool);
+import { tool as passwordGeneratorTool } from "./password-generator";
+tools.push(passwordGeneratorTool);
+import { tool as jsonEditorTool } from "./json-editor";
+tools.push(jsonEditorTool);
+import { tool as pngTintTool } from "./png-tint";
+tools.push(pngTintTool);
+import { tool as gitlabTool } from "./gitlab";
+tools.push(gitlabTool);

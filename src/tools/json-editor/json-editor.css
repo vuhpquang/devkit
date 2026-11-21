@@ -1,0 +1,130 @@
+/*
+ * vanilla-jsoneditor themed with DevKit tokens (src/index.css). The tokens switch with the
+ * .dark class, so these mappings follow the app's appearance; the library's own
+ * .jse-theme-dark class is still toggled for what it switches internally (--jse-theme, text mode).
+ * Only token references here — no raw colours.
+ */
+.dk-jse,
+.dk-jse.jse-theme-dark {
+  --jse-theme-color: var(--surface-2);
+  --jse-theme-color-highlight: var(--surface-3);
+  --jse-menu-color: var(--text-muted);
+  --jse-background-color: var(--surface);
+  --jse-text-color: var(--text);
+  --jse-text-color-inverse: var(--text-faint);
+  /* The surrounding Panel draws the outer border. */
+  --jse-main-border: none;
+
+  --jse-font-family: var(--font-sans);
+  --jse-font-family-mono: var(--font-mono);
+  --jse-font-size: var(--text-base, 13px);
+  --jse-font-size-mono: var(--editor-font-size, 13px);
+
+  --jse-key-color: var(--syn-key);
+  --jse-value-color: var(--text);
+  --jse-value-color-number: var(--syn-number);
+  --jse-value-color-boolean: var(--syn-number);
+  --jse-value-color-null: var(--syn-keyword);
+  --jse-value-color-string: var(--syn-string);
+  --jse-value-color-url: var(--accent-text);
+  --jse-delimiter-color: var(--syn-punct);
+  --jse-edit-outline: 2px solid var(--accent);
+
+  --jse-selection-background-color: var(--accent-ring);
+  --jse-selection-background-inactive-color: var(--surface-3);
+  --jse-hover-background-color: var(--surface-2);
+  --jse-active-line-background-color: color-mix(in srgb, var(--surface-3) 45%, transparent);
+  --jse-search-match-color: var(--accent-soft);
+  --jse-search-match-background-color: var(--accent-soft);
+  --jse-search-match-outline: 1px solid var(--accent);
+  --jse-search-match-active-color: var(--accent-ring);
+  --jse-search-match-active-outline: 1px solid var(--accent);
+
+  --jse-panel-background: var(--surface-2);
+  --jse-panel-background-border: 1px solid var(--border);
+  --jse-panel-border: 1px solid var(--border);
+  --jse-panel-color: var(--text-muted);
+  --jse-panel-color-readonly: var(--text-faint);
+  --jse-panel-button-color-highlight: var(--text);
+  --jse-panel-button-background-highlight: var(--surface-3);
+
+  --jse-navigation-bar-background: var(--surface-2);
+  --jse-navigation-bar-background-highlight: var(--surface-3);
+  --jse-navigation-bar-dropdown-color: var(--text);
+
+  --jse-context-menu-background: var(--surface);
+  --jse-context-menu-background-highlight: var(--surface-2);
+  --jse-context-menu-color: var(--text);
+  --jse-context-menu-separator-color: var(--border);
+  --jse-context-menu-pointer-background: var(--surface-3);
+  --jse-context-menu-pointer-background-highlight: var(--accent-soft);
+  --jse-context-menu-pointer-color: var(--text);
+
+  --jse-modal-background: var(--surface);
+  --jse-modal-overlay-background: var(--scrim);
+  --jse-modal-code-background: var(--surface-2);
+
+  --jse-input-background: var(--surface);
+  --jse-input-border: 1px solid var(--border-strong);
+  --jse-svelte-select-background: var(--surface);
+  --jse-svelte-select-border: 1px solid var(--border-strong);
+
+  --jse-button-background: var(--accent);
+  --jse-button-background-highlight: var(--accent-hover);
+  --jse-button-color: var(--on-accent);
+  --jse-button-secondary-background: var(--surface-3);
+  --jse-button-secondary-background-highlight: var(--border-strong);
+  --jse-button-secondary-background-disabled: var(--surface-2);
+  --jse-button-secondary-color: var(--text);
+
+  --jse-a-color: var(--accent-text);
+  --jse-a-color-highlight: var(--accent-text);
+  --jse-tag-background: var(--surface-3);
+  --jse-tag-color: var(--text-muted);
+
+  --jse-table-header-background: var(--surface-2);
+  --jse-table-header-background-highlight: var(--surface-3);
+  --jse-table-row-odd-background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+
+  --jse-collapsed-items-background-color: var(--surface-2);
+  --jse-collapsed-items-selected-background-color: var(--accent-soft);
+  --jse-collapsed-items-link-color: var(--accent-text);
+  --jse-collapsed-items-link-color-highlight: var(--accent-text);
+
+  --jse-tooltip-background: var(--surface);
+  --jse-tooltip-border: 1px solid var(--border);
+  --jse-tooltip-color: var(--text);
+  --jse-tooltip-action-button-background: var(--surface-3);
+  --jse-tooltip-action-button-color: var(--text);
+
+  --jse-color-picker-background: var(--surface);
+  --jse-color-picker-border-box-shadow: var(--shadow-pop);
+}
+
+/* Diff highlighting (tree mode), set per node through onClassName. */
+.dk-jse .jse-json-node.jse-diff-changed {
+  --jse-contents-background-color: var(--accent-soft);
+}
+.dk-jse .jse-json-node.jse-diff-added {
+  --jse-contents-background-color: var(--diff-add);
+}
+.dk-jse .jse-json-node.jse-diff-removed {
+  --jse-contents-background-color: var(--diff-del);
+}
+.dk-jse .jse-json-node.jse-diff-parent > .jse-header-outer > .jse-header {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.dk-jse .jse-json-node.jse-diff-current {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: -2px;
+}
+
+/* While the middle column is dragged: one cursor everywhere, editors ignore the pointer. */
+body.dk-col-resizing,
+body.dk-col-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+body.dk-col-resizing .dk-jse {
+  pointer-events: none;
+}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Globe, Server } from "lucide-react";
 import type { ToolDef } from "../types";
-import { Badge, CopyButton, EmptyState, LookupBar, Notice, Panel, ToolPage, cx } from "../../lib/ui";
+import { Badge, CopyButton, EmptyState, LookupBar, Notice, Panel, Toggle, ToolPage } from "../../lib/ui";
 import { dnsLookup, defaultTypes, type DnsRecordType, type DnsRecord } from "./logic";
 
 const ALL_TYPES: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "CNAME"];
@@ -50,18 +50,9 @@ function DnsLookup() {
           {ALL_TYPES.map((type) => {
             const on = selectedTypes.includes(type);
             return (
-              <button
-                key={type}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggleType(type)}
-                className={cx(
-                  "h-8 px-2.5 rounded-md text-sm font-semibold font-mono border transition-colors duration-100 outline-none focus-visible:ring-2 focus-visible:ring-accent-ring",
-                  on ? "bg-accent-soft border-accent/50 text-accent-text" : "bg-surface border-line-strong text-fg-faint hover:text-fg",
-                )}
-              >
+              <Toggle key={type} mono on={on} onToggle={() => toggleType(type)}>
                 {type}
-              </button>
+              </Toggle>
             );
           })}
         </div>

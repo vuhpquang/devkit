@@ -7,6 +7,8 @@ export type Category =
   | "Converters"
   | "Encoders"
   | "Generators"
+  | "Text"
+  | "Design"
   | "Network";
 
 export interface ToolDef {
