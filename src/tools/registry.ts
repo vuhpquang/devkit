@@ -8,6 +8,7 @@ export const CATEGORY_ORDER: Category[] = [
   "Generators",
   "Text",
   "Design",
+  "System",
   "Network",
 ];
 
@@ -85,3 +86,17 @@ import { tool as pngTintTool } from "./png-tint";
 tools.push(pngTintTool);
 import { tool as gitlabTool } from "./gitlab";
 tools.push(gitlabTool);
+import { tool as dnsSwitcherTool } from "./dns-switcher";
+tools.push(dnsSwitcherTool);
+import { tool as networkThrottleTool } from "./network-throttle";
+tools.push(networkThrottleTool);
+import { tool as hostsEditorTool } from "./hosts-editor";
+tools.push(hostsEditorTool);
+import { tool as networkInfoTool } from "./network-info";
+tools.push(networkInfoTool);
+import { tool as portInspectorTool } from "./port-inspector";
+tools.push(portInspectorTool);
+import { tool as pingTracerouteTool } from "./ping-traceroute";
+tools.push(pingTracerouteTool);
+import { tool as speedTestTool } from "./speed-test";
+tools.push(speedTestTool);

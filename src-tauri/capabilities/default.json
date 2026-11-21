@@ -38,6 +38,9 @@
         },
         {
           "url": "http://localhost:*/api/v4/*"
+        },
+        {
+          "url": "https://speed.cloudflare.com/*"
         }
       ]
     }

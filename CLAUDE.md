@@ -18,6 +18,26 @@ roadmap: `PLAN.md`.
   tauri-plugin-http 2.5 panics at launch on a scope there).
 - Bundle id `com.quangvu.devkit` never changes (settings and the App Depot entry are keyed by it).
 
+## System tools (macOS)
+
+Network Info, Port Inspector, DNS Switcher, Network Throttle, Hosts File and Ping & Traceroute call Rust commands
+in `src-tauri/src/sys/` through the typed wrappers in `src/lib/system.ts` (they reject with `NotInApp` in a plain
+browser, so `npm run dev` shows an explanation instead of crashing).
+
+- Unprivileged commands: `sys::run` with an absolute program path and an argument list — never a shell.
+- Root work (DNS, throttle, hosts): `sys::privileged` runs a `/bin/sh` script through the macOS administrator
+  prompt. Scripts are built only from constants and values already validated into narrow types (parsed IPs,
+  integers in range, a network service name `networksetup` itself listed, paths DevKit generated), each one
+  `sh_quote`d. Never interpolate anything else. Cancelling the prompt → `"cancelled"` (`isCancelled`) → no error.
+- Network Throttle (`sys/throttle.rs`): dummynet pipes 7101/7102 + pf anchor `com.apple/devkit` (the stock
+  `/etc/pf.conf` has `dummynet-anchor "com.apple/*"`), loopback excluded, pf enabled with a token and released
+  with it. A root watcher undoes everything when `$TMPDIR/devkit-throttle/off` appears (Turn off — no password),
+  DevKit's PID exits, or the time limit passes. `cargo test` checks the rules with `pfctl -n`; the real effect needs
+  the admin password, so verify by hand after changing it.
+- Hosts: saved through a temp file; the old file is kept as `/etc/hosts.devkit-backup`; DNS cache flushed.
+- HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +
+  `http://localhost:*/api/v4/*` (GitLab, token in the `PRIVATE-TOKEN` header).
+
 ## UI
 
 - Palette comes from the app icon: charcoal (`#161A23`→`#2C3445`) + amber (`#F5A524`/`#FFC861`). Every colour,

@@ -9,6 +9,7 @@ export type Category =
   | "Generators"
   | "Text"
   | "Design"
+  | "System"
   | "Network";
 
 export interface ToolDef {
