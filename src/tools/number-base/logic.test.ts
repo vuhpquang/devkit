@@ -15,3 +15,19 @@ describe("convertBase", () => {
     expect(convertBase("xyz", 10).ok).toBe(false);
   });
 });
+
+describe("convertBase validation and range", () => {
+  it("rejects digits that don't belong to the base", () => {
+    expect(convertBase("12", 2).ok).toBe(false);
+    expect(convertBase("8", 8).ok).toBe(false);
+    expect(convertBase("ff", 10).ok).toBe(false);
+  });
+  it("accepts a matching prefix and separators", () => {
+    expect(convertBase("0xFF", 16)).toMatchObject({ ok: true, dec: "255" });
+    expect(convertBase("0b1010_1010", 2)).toMatchObject({ ok: true, dec: "170" });
+    expect(convertBase("1 000 000", 10)).toMatchObject({ ok: true, hex: "f4240" });
+  });
+  it("keeps precision past 2^53", () => {
+    expect(convertBase("18446744073709551615", 10)).toMatchObject({ ok: true, hex: "ffffffffffffffff" });
+  });
+});
