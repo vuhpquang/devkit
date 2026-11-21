@@ -35,6 +35,12 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   DevKit's PID exits, or the time limit passes. `cargo test` checks the rules with `pfctl -n`; the real effect needs
   the admin password, so verify by hand after changing it.
 - Hosts: saved through a temp file; the old file is kept as `/etc/hosts.devkit-backup`; DNS cache flushed.
+- Images (`src-tauri/src/img.rs`, binding `src/lib/image.ts`): decode PNG/JPEG/WebP/GIF/BMP/TIFF/ICO and SVG
+  (resvg), resize (fit/fill/exact/percent, no upscaling of rasters unless asked), encode PNG/JPEG/WebP (lossy via
+  libwebp, lossless)/GIF/BMP/TIFF/multi-size ICO. Bytes travel as a raw IPC body, options in the `x-devkit-options`
+  header, the response is `u32 width, u32 height` (LE) + the file. WebKit can't encode WebP, hence Rust.
+- Tool → tool hand-off: `sendTo(id, payload)` / `takeHandoff(id)` (`src/app/handoff.ts`); the shell opens and
+  remounts the target. SVG ↔ React → Image Converter → Image Resize use it.
 - HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +
   `http://localhost:*/api/v4/*` (GitLab, token in the `PRIVATE-TOKEN` header).
 

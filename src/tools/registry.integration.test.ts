@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { tools, CATEGORY_ORDER } from "./registry";
 
 describe("registry integration", () => {
-  it("registers all 40 tools (32 local + 8 online)", () => {
-    expect(tools).toHaveLength(40);
+  it("registers all 43 tools (35 local + 8 online)", () => {
+    expect(tools).toHaveLength(43);
     expect(tools.filter((t) => t.online)).toHaveLength(8);
   });
 

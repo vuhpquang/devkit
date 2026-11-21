@@ -1,3 +1,4 @@
+mod img;
 mod menu;
 mod sys;
 mod whois;
@@ -46,6 +47,8 @@ pub fn run() {
             sys::hosts::hosts_read,
             sys::hosts::hosts_write,
             sys::hosts::hosts_backup,
+            img::image_convert,
+            img::image_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

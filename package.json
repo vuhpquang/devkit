@@ -40,6 +40,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sql-formatter": "^15.8.2",
+    "svgo": "^4.1.0",
     "uuid": "^14.0.1",
     "vanilla-jsoneditor": "^3.13.1",
     "xml-formatter": "^3.7.0"

@@ -124,7 +124,7 @@ function ToolsPane() {
   return (
     <>
       <Section footer="Off: DevKit never touches the network, and online tools disappear from ⌘K too.">
-        <Row label="Online tools" hint="WHOIS, DNS, IP info, npm, currency">
+        <Row label="Online tools" hint={tools.filter((t) => t.online).map((t) => t.name).join(", ")}>
           <Switch label="Online tools" checked={settings.showOnlineTools} onChange={(showOnlineTools) => update({ showOnlineTools })} />
         </Row>
       </Section>

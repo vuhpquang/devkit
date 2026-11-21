@@ -13,6 +13,7 @@ import { UpdaterProvider, useUpdater } from "./app/updater";
 import { checkWhatsNew } from "./app/updates";
 import { inApp, onMenu, type MenuId } from "./app/menuEvents";
 import { useActiveTool } from "./app/useActiveTool";
+import { OPEN_TOOL_EVENT } from "./app/handoff";
 import { getToolById } from "./tools/registry";
 import type { ToolDef } from "./tools/types";
 import { Button, cx, IconTile, OnlineBadge } from "./lib/ui";
@@ -178,6 +179,19 @@ function Shell() {
 
   useEffect(() => onMenu(runMenu), [runMenu]);
 
+  // Another tool handed over a result: open the target (remounted, so it reads the payload on mount).
+  const [handoffs, setHandoffs] = useState(0);
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!getToolById(id)) return;
+      setHandoffs((n) => n + 1);
+      select(id);
+    };
+    window.addEventListener(OPEN_TOOL_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TOOL_EVENT, onOpen);
+  }, [select]);
+
   // Keyboard. In the app the native menu owns ⌘K, ⌘, and ⌃⌘S; in a plain browser the page handles them.
   useEffect(() => {
     const menuOwnsKeys = inApp();
@@ -256,7 +270,7 @@ function Shell() {
           sidebarInFlow={mode === "shown"}
         />
         <div className="flex-1 min-h-0">
-          {Active ? <Active key={active.id} /> : <Home onSelect={select} onSearch={() => setPaletteOpen(true)} />}
+          {Active ? <Active key={`${active.id}:${handoffs}`} /> : <Home onSelect={select} onSearch={() => setPaletteOpen(true)} />}
         </div>
       </main>
 
