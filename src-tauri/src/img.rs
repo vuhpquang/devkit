@@ -12,6 +12,31 @@ use tauri::ipc::{InvokeBody, Request, Response};
 
 const MAX_INPUT: usize = 200 * 1024 * 1024;
 const MAX_SIDE: u32 = 16_384;
+/// Pixel budget for anything DevKit allocates (64 MP ≈ 256 MB RGBA). A crafted SVG can't ask for more.
+const MAX_PIXELS: u64 = 64_000_000;
+
+/// Scales (w, h) down, keeping the aspect ratio, until each side ≤ MAX_SIDE and w × h ≤ MAX_PIXELS.
+pub fn clamp_size(w: u32, h: u32) -> (u32, u32) {
+    let (w, h) = (w.max(1) as f64, h.max(1) as f64);
+    let side = (MAX_SIDE as f64 / w).min(MAX_SIDE as f64 / h);
+    let area = (MAX_PIXELS as f64 / (w * h)).sqrt();
+    let s = side.min(area).min(1.0);
+    (((w * s).floor() as u32).max(1), ((h * s).floor() as u32).max(1))
+}
+
+/// usvg options that never touch the disk: `<image href>` only accepts data: URLs, so converting someone
+/// else's SVG can't pull a file from this Mac into the output.
+fn svg_options(fonts: bool) -> resvg::usvg::Options<'static> {
+    let mut opt = resvg::usvg::Options::default();
+    opt.image_href_resolver = resvg::usvg::ImageHrefResolver {
+        resolve_data: resvg::usvg::ImageHrefResolver::default_data_resolver(),
+        resolve_string: Box::new(|_, _| None),
+    };
+    if fonts {
+        opt.fontdb_mut().load_system_fonts();
+    }
+    opt
+}
 
 #[derive(Deserialize, Default, Debug, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -112,16 +137,14 @@ pub fn target_size(w: u32, h: u32, r: &Resize, raster: bool) -> (u32, u32) {
         tw = (tw * s).round().max(1.0);
         th = (th * s).round().max(1.0);
     }
-    (tw.min(MAX_SIDE as f64) as u32, th.min(MAX_SIDE as f64) as u32)
+    clamp_size(tw.min(u32::MAX as f64) as u32, th.min(u32::MAX as f64) as u32)
 }
 
 fn render_svg(data: &[u8], resize: Option<&Resize>) -> Result<RgbaImage, String> {
-    let mut opt = resvg::usvg::Options::default();
-    opt.fontdb_mut().load_system_fonts();
-    let tree = resvg::usvg::Tree::from_data(data, &opt).map_err(|e| format!("Not a valid SVG: {e}"))?;
+    let tree = resvg::usvg::Tree::from_data(data, &svg_options(true)).map_err(|e| format!("Not a valid SVG: {e}"))?;
     let size = tree.size();
-    let (w, h) = (size.width().ceil().max(1.0) as u32, size.height().ceil().max(1.0) as u32);
-    let (tw, th) = resize.map(|r| target_size(w, h, r, false)).unwrap_or((w, h));
+    let (w, h) = (size.width().ceil().clamp(1.0, u32::MAX as f32) as u32, size.height().ceil().clamp(1.0, u32::MAX as f32) as u32);
+    let (tw, th) = resize.map(|r| target_size(w, h, r, false)).unwrap_or_else(|| clamp_size(w, h));
     let mut pixmap = resvg::tiny_skia::Pixmap::new(tw, th).ok_or("The SVG has no size to render.")?;
     let transform = resvg::tiny_skia::Transform::from_scale(tw as f32 / size.width(), th as f32 / size.height());
     resvg::render(&tree, transform, &mut pixmap.as_mut());
@@ -258,7 +281,7 @@ pub async fn image_convert(request: Request<'_>) -> Result<Response, String> {
 
 pub fn info(data: &[u8]) -> Result<ImageInfo, String> {
     if is_svg(data) {
-        let tree = resvg::usvg::Tree::from_data(data, &resvg::usvg::Options::default()).map_err(|e| format!("Not a valid SVG: {e}"))?;
+        let tree = resvg::usvg::Tree::from_data(data, &svg_options(false)).map_err(|e| format!("Not a valid SVG: {e}"))?;
         let s = tree.size();
         return Ok(ImageInfo { format: "svg".into(), width: s.width().ceil() as u32, height: s.height().ceil() as u32, has_alpha: true });
     }
@@ -365,6 +388,53 @@ mod tests {
         let (bytes, ..) = convert(SVG.as_bytes(), &o).unwrap();
         // ICONDIR: reserved(2) type(2) count(2) — 300 is dropped, 32 deduplicated.
         assert_eq!(u16::from_le_bytes([bytes[4], bytes[5]]), 3);
+    }
+
+    #[test]
+    fn huge_svgs_are_capped() {
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="1000000" height="500000"><rect width="10" height="10"/></svg>"#;
+        let (_, w, h) = convert(svg.as_bytes(), &opts("png")).unwrap();
+        assert!(w <= MAX_SIDE && h <= MAX_SIDE && (w as u64) * (h as u64) <= MAX_PIXELS, "{w}x{h}");
+        assert!((w as i64 - 2 * h as i64).abs() <= 1, "aspect kept: {w}x{h}");
+        assert_eq!(clamp_size(100, 50), (100, 50));
+        assert!({ let (a, b) = clamp_size(16_000, 16_000); (a as u64) * (b as u64) <= MAX_PIXELS });
+    }
+
+    #[test]
+    fn svg_can_not_read_local_files() {
+        // A red PNG on disk, referenced by absolute path from the SVG: it must not appear in the render.
+        let dir = std::env::temp_dir().join(format!("devkit-img-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("secret.png");
+        let red = RgbaImage::from_pixel(8, 8, image::Rgba([255, 0, 0, 255]));
+        std::fs::write(&path, encode(&DynamicImage::ImageRgba8(red), &opts("png")).unwrap()).unwrap();
+        let svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="8" height="8"><image width="8" height="8" xlink:href="{}"/></svg>"#,
+            path.display()
+        );
+        let (bytes, ..) = convert(svg.as_bytes(), &opts("png")).unwrap();
+        let px = image::load_from_memory(&bytes).unwrap().to_rgba8().get_pixel(4, 4).0;
+        assert_eq!(px[3], 0, "local file leaked into the output: {px:?}");
+        // data: URLs still work.
+        let data_svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><image width="8" height="8" href="data:image/png;base64,{}"/></svg>"#,
+            base64_png(&std::fs::read(&path).unwrap())
+        );
+        let (bytes, ..) = convert(data_svg.as_bytes(), &opts("png")).unwrap();
+        assert_eq!(image::load_from_memory(&bytes).unwrap().to_rgba8().get_pixel(4, 4).0, [255, 0, 0, 255]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    fn base64_png(b: &[u8]) -> String {
+        const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut s = String::new();
+        for c in b.chunks(3) {
+            let n = (c[0] as u32) << 16 | (*c.get(1).unwrap_or(&0) as u32) << 8 | *c.get(2).unwrap_or(&0) as u32;
+            for i in 0..4 {
+                s.push(if i <= c.len() { T[(n >> (18 - 6 * i) & 63) as usize] as char } else { '=' });
+            }
+        }
+        s
     }
 
     #[test]
