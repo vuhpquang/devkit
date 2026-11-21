@@ -5,6 +5,7 @@
 #   INSTALL=1 scripts/release.sh X.Y.Z notes.md   # also replace /Applications/devkit.app
 #   PUBLISH=0 INSTALL=1 scripts/release.sh ...    # office: commit + tag locally, install, no push
 #   DRY_RUN=1 scripts/release.sh X.Y.Z notes.md   # build + verify only, bump reverted
+#   DRY_RUN=1 INSTALL=1 scripts/release.sh X.Y.Z  # preview: build + install to /Applications, nothing committed
 #   SKIP_TESTS=1 ...                              # skip npm test + cargo test
 #
 # Steps: preflight → bump package.json/package-lock + tauri.conf.json + Cargo.toml/lock → tests →
@@ -29,8 +30,10 @@ APP="build/devkit.app"
 VERSION="${1:-}"
 NOTES_FILE="${2:-}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "usage: scripts/release.sh X.Y.Z notes.md"
-[[ -f "$NOTES_FILE" ]] || die "notes file not found: ${NOTES_FILE:-<missing>}"
-NOTES_FILE="$(cd "$(dirname "$NOTES_FILE")" && pwd)/$(basename "$NOTES_FILE")"
+if [[ "$DRY_RUN" != "1" ]]; then  # a dry run / preview publishes nothing, so it needs no notes
+    [[ -f "$NOTES_FILE" ]] || die "notes file not found: ${NOTES_FILE:-<missing>}"
+    NOTES_FILE="$(cd "$(dirname "$NOTES_FILE")" && pwd)/$(basename "$NOTES_FILE")"
+fi
 TAG="v${VERSION}"
 ZIP="build/DevKit-${VERSION}.zip"
 EXPECTED_DR="$(head -n 1 scripts/release-requirement.txt)"
@@ -98,7 +101,30 @@ installed copies (and the App Depot catalog signer) would reject this build"
 ditto -c -k --keepParent "$APP" "$ZIP"
 echo "    signer OK ($IDENTITY), $ZIP sha256 $(shasum -a 256 "$ZIP" | awk '{print $1}')"
 
+# Replaces the copy in /Applications with the build. Used by a real release and by a preview
+# (DRY_RUN=1 INSTALL=1).
+install_app() {
+    step "Installing /Applications/devkit.app"
+    INSTALLED_BIN="/Applications/devkit.app/Contents/MacOS/devkit"
+    WAS_RUNNING=0
+    if pgrep -fq "$INSTALLED_BIN"; then
+        WAS_RUNNING=1
+        osascript -e "quit app id \"$BUNDLE_ID\"" >/dev/null 2>&1 || true
+        for _ in $(seq 1 20); do pgrep -fq "$INSTALLED_BIN" || break; sleep 0.5; done
+        pgrep -fq "$INSTALLED_BIN" && die "installed DevKit is still running; quit it and run: ditto $APP /Applications/devkit.app"
+    fi
+    rm -rf /Applications/devkit.app
+    ditto "$APP" /Applications/devkit.app
+    touch /Applications/devkit.app
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/devkit.app || true
+    xattr -dr com.apple.quarantine /Applications/devkit.app 2>/dev/null || true
+    [[ "$WAS_RUNNING" == "1" ]] && open /Applications/devkit.app
+    return 0
+}
+
 if [[ "$DRY_RUN" == "1" ]]; then
+    # DRY_RUN=1 INSTALL=1 = preview: the owner tries this build in /Applications before deciding to release.
+    if [[ "${INSTALL:-0}" == "1" ]]; then install_app; step "Preview installed (version bump reverted, nothing committed)."; fi
     step "Dry run: stopping before commit; version bump reverted. Artifacts are in build/."
     exit 0
 fi
@@ -120,23 +146,7 @@ if [[ "$PUBLISH" != "0" ]]; then
     echo "    https://github.com/$REPO/releases/tag/$TAG"
 fi
 
-if [[ "${INSTALL:-0}" == "1" ]]; then
-    step "Installing /Applications/devkit.app"
-    INSTALLED_BIN="/Applications/devkit.app/Contents/MacOS/devkit"
-    WAS_RUNNING=0
-    if pgrep -fq "$INSTALLED_BIN"; then
-        WAS_RUNNING=1
-        osascript -e "quit app id \"$BUNDLE_ID\"" >/dev/null 2>&1 || true
-        for _ in $(seq 1 20); do pgrep -fq "$INSTALLED_BIN" || break; sleep 0.5; done
-        pgrep -fq "$INSTALLED_BIN" && die "installed DevKit is still running; quit it and run: ditto $APP /Applications/devkit.app"
-    fi
-    rm -rf /Applications/devkit.app
-    ditto "$APP" /Applications/devkit.app
-    touch /Applications/devkit.app
-    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/devkit.app || true
-    xattr -dr com.apple.quarantine /Applications/devkit.app 2>/dev/null || true
-    [[ "$WAS_RUNNING" == "1" ]] && open /Applications/devkit.app
-fi
+if [[ "${INSTALL:-0}" == "1" ]]; then install_app; fi
 
 step "Released DevKit $VERSION"
 [[ "$PUBLISH" != "0" ]] || echo "    local only: commit + tag $TAG not pushed, no GitHub release yet"
