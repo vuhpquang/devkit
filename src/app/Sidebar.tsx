@@ -1,12 +1,12 @@
 import { useRef } from "react";
-import { Globe, LayoutGrid, Search, X } from "lucide-react";
+import { Globe, LayoutGrid, Search, Settings, X } from "lucide-react";
 import { tools, CATEGORY_ORDER } from "../tools/registry";
 import type { ToolDef } from "../tools/types";
-import { cx, Kbd } from "../lib/ui";
+import { Button, cx, Kbd } from "../lib/ui";
 import { ThemeSwitcher } from "./theme";
 import { usePrefs } from "./prefs";
 import { searchTools } from "./search";
-import pkg from "../../package.json";
+import { isToolSearchable, isToolVisible, useSettings } from "./settings";
 
 interface Props {
   activeId: string | null;
@@ -14,6 +14,7 @@ interface Props {
   query: string;
   onQuery: (q: string) => void;
   onAbout?: () => void;
+  onSettings?: () => void;
 }
 
 function Item({ tool, active, onSelect }: { tool: ToolDef; active: boolean; onSelect: (id: string) => void }) {
@@ -54,12 +55,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export function Sidebar({ activeId, onSelect, query, onQuery, onAbout }: Props) {
+export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSettings }: Props) {
   const { favorites } = usePrefs();
+  const { settings } = useSettings();
+  const visible = tools.filter((t) => isToolVisible(t, settings));
   const searchRef = useRef<HTMLInputElement>(null);
   const searching = query.trim().length > 0;
-  const results = searching ? searchTools(tools, query) : [];
-  const favTools = favorites.map((id) => tools.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+  // Search reaches hidden tools too; switched-off online tools stay out.
+  const results = searching ? searchTools(tools.filter((t) => isToolSearchable(t, settings)), query) : [];
+  const favTools = favorites.map((id) => visible.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
 
   return (
     <aside className="w-[244px] shrink-0 flex flex-col bg-sidebar border-r border-line">
@@ -135,7 +139,7 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout }: Props) 
               >
                 <LayoutGrid size={16} className={activeId === null ? "text-accent-text" : "text-fg-faint"} aria-hidden />
                 All tools
-                <span className="ml-auto text-sm text-fg-faint tabular-nums">{tools.length}</span>
+                <span className="ml-auto text-sm text-fg-faint tabular-nums">{visible.length}</span>
               </button>
             </div>
             {favTools.length > 0 && (
@@ -146,7 +150,7 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout }: Props) 
               </Section>
             )}
             {CATEGORY_ORDER.map((cat) => {
-              const items = tools.filter((t) => t.category === cat);
+              const items = visible.filter((t) => t.category === cat);
               if (items.length === 0) return null;
               return (
                 <Section key={cat} title={cat}>
@@ -170,10 +174,10 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout }: Props) 
         >
           <img src="/app-icon.png" alt="" width={22} height={22} className="shrink-0" />
           <span className="text-base font-semibold text-fg">DevKit</span>
-          <span className="text-sm text-fg-faint tabular-nums">{pkg.version}</span>
         </button>
         <div className="flex-1" />
         <ThemeSwitcher />
+        <Button variant="ghost" size="sm" icon={Settings} label="Settings (⌘,)" onClick={onSettings} />
       </div>
     </aside>
   );

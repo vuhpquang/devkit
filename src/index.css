@@ -51,6 +51,7 @@
 
   --shadow-pop: 0 1px 2px rgb(30 36 48 / 0.06), 0 12px 40px rgb(30 36 48 / 0.18);
   --scrim: rgb(22 26 35 / 0.32);
+  --knob: #ffffff;            /* switch knob, white in both appearances like macOS */
 
   color-scheme: light;
 }
@@ -162,6 +163,7 @@
   --color-diff-del: var(--diff-del);
   --color-diff-del-strong: var(--diff-del-strong);
   --color-scrim: var(--scrim);
+  --color-knob: var(--knob);
   --shadow-pop: var(--shadow-pop);
 }
 

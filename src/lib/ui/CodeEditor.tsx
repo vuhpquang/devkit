@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
@@ -17,6 +17,10 @@ import { sql } from "@codemirror/lang-sql";
 import { xml } from "@codemirror/lang-xml";
 import { yaml } from "@codemirror/lang-yaml";
 import { javascript } from "@codemirror/lang-javascript";
+
+/** App-wide editor defaults (Settings → Editor). Tools may still override wrap / line numbers per pane. */
+export const EditorDefaults = createContext<{ wrap: boolean; lineNumbers: boolean }>({ wrap: false, lineNumbers: true });
+export const useEditorDefaults = () => useContext(EditorDefaults);
 
 export type Lang = "json" | "sql" | "xml" | "yaml" | "javascript" | "text";
 
@@ -52,7 +56,7 @@ const highlight = HighlightStyle.define([
 const theme = EditorView.theme({
   "&": {
     height: "100%",
-    fontSize: "13px",
+    fontSize: "var(--editor-font-size, 13px)",
     color: "var(--text)",
     backgroundColor: "transparent",
   },
@@ -71,7 +75,7 @@ const theme = EditorView.theme({
     paddingLeft: "6px",
     minWidth: "38px",
   },
-  ".cm-lineNumbers .cm-gutterElement": { fontSize: "11.5px", paddingRight: "2px" },
+  ".cm-lineNumbers .cm-gutterElement": { fontSize: "0.88em", paddingRight: "2px" },
   ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--surface-3) 45%, transparent)" },
   ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--text-muted)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)", borderLeftWidth: "2px" },

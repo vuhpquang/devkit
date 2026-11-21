@@ -1,3 +1,4 @@
+mod menu;
 mod whois;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -13,6 +14,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
+        .setup(|app| {
+            let menu = menu::build(app.handle())?;
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| menu::forward(app, event.id().as_ref()));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![greet, whois::whois_lookup])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

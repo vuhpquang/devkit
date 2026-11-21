@@ -27,12 +27,28 @@ roadmap: `PLAN.md`.
 - Fonts are the system ones (SF Pro / SF Mono, offline). Body 13 px, editors 13 px mono.
 - Every tool builds from `src/lib/ui` only: `TransformTool` (live input → output with modes, used by the
   formatters/converters/encoders), `EditorPane` (CodeMirror 6 + Paste/Clear/Copy + status line), `LookupBar`
-  (online tools, Enter runs), `Panel`, `KeyValueList`, `Segmented`, `Button`, `EmptyState`, `Notice`.
+  (online tools, Enter runs), `Panel`, `KeyValueList`, `Segmented`, `Toggle` (pressed buttons: flags, record
+  types, bits), `Switch`, `Button`, `EmptyState`, `Notice`. Don't hand-roll a variant of one of these in a tool.
   Local tools update as you type; only online tools have a submit button.
 - `ToolDef` needs `description` and a lucide `icon`; they show in the header, home grid, sidebar and ⌘K.
-- Shell: `src/app/` — Sidebar (search, Favorites, categories), Home grid, ⌘K palette (arrows, recent),
-  ⌘D toggles favorite. Stored in localStorage: `devkit.theme`, `devkit.lastTool`, `devkit.favorites`,
-  `devkit.recent` (never rename them).
+- Shell: `src/app/` — Sidebar (search, Favorites, categories; modes Shown / Hidden / Auto-hide, toggle ⌃⌘S),
+  Home grid, ⌘K palette (arrows, recent; hidden tools still found), ⌘D toggles favorite.
+- Settings (⌘,) is a sheet in the window (`SettingsView.tsx`), panes in app-shell order: General, Tools
+  (show/hide each tool, online tools off = no network), Editor (font size, wrap, line numbers → `EditorDefaults`
+  context in `lib/ui`), Updates, About. Model + validation: `settings.ts` (`parseSettings` drops bad fields).
+- About follows app-shell's AboutView exactly (`About.tsx`: icon 112, name, tagline, `Version X (build)` — build =
+  commit count from `vite.config.ts` — update status + button, What's New / Report Issue, author footer, 420 wide).
+  Updates: `updater.tsx` checks GitHub `releases/latest` 10 s after launch and every 6 h (auto-check setting); App
+  Depot installs, so the button opens the release page. What's New (`WhatsNew.tsx`) opens once after the version
+  goes up, silent on first run (`devkit.whatsNew.lastVersion`).
+- Native menu: `src-tauri/src/menu.rs` (About, Check for Updates…, Settings… ⌘,, Find a Tool ⌘K, Toggle Sidebar
+  ⌃⌘S, What's New, Report an Issue; Edit menu kept so ⌘C/⌘V work in the webview). Items reach the page as a `menu`
+  event (`src/app/menuEvents.ts`); inside the app the page doesn't also handle ⌘K / ⌘, / ⌃⌘S.
+- localStorage keys (never rename): `devkit.theme`, `devkit.lastTool`, `devkit.favorites`, `devkit.recent`,
+  `devkit.settings`, `devkit.whatsNew.lastVersion`, `devkit.jsonEditor.split`, `devkit.gitlab` (token stays on
+  this Mac).
+- DevKit is a **public** repo: tools ported from the owner's work scripts (GitLab dashboard) carry no company
+  hosts, user names or group names — the user types them in the app.
 - Window: overlay title bar (`titleBarStyle: Overlay`, traffic lights at 18,24). The 52 px strip at the top of the
   sidebar and the tool header carry `data-tauri-drag-region` (needs `core:window:allow-start-dragging`).
 - Look at it before calling UI done: `npm run dev`, then light + dark at 1200×780 (Playwright works against

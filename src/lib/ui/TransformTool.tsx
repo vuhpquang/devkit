@@ -2,7 +2,7 @@ import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
 import { ArrowLeftRight, FileText, WrapText } from "lucide-react";
 import { Button, Segmented } from "./primitives";
 import { EditorPane, Split, ToolBar, ToolBarDivider, ToolPage, type Status } from "./layout";
-import type { Lang } from "./CodeEditor";
+import { useEditorDefaults, type Lang } from "./CodeEditor";
 
 export type TransformResult = { ok: true; value: string } | { ok: false; error: string };
 
@@ -44,7 +44,8 @@ export function TransformTool<M extends string>({
 }) {
   const [modeValue, setMode] = useState<M>(initialMode ?? modes[0].value);
   const [input, setInput] = useState("");
-  const [wrap, setWrap] = useState(wrapByDefault);
+  const defaults = useEditorDefaults();
+  const [wrap, setWrap] = useState(wrapByDefault || defaults.wrap);
   const mode = modes.find((m) => m.value === modeValue) ?? modes[0];
   const deferred = useDeferredValue(input);
 

@@ -22,7 +22,7 @@ describe("searchTools", () => {
 
   it("requires every word to match", () => {
     expect(searchTools(tools, "json zzz")).toEqual([]);
-    expect(searchTools(tools, "url decode").map((t) => t.id)).toEqual(["url-codec"]);
+    expect(searchTools(tools, "url decode").map((t) => t.id)[0]).toBe("url-codec");
   });
 
   it("scores a non-match as -1", () => {

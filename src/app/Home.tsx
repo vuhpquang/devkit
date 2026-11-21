@@ -3,6 +3,7 @@ import { tools, CATEGORY_ORDER } from "../tools/registry";
 import type { ToolDef } from "../tools/types";
 import { Button, IconTile, Kbd, OnlineBadge } from "../lib/ui";
 import { usePrefs } from "./prefs";
+import { isToolVisible, useSettings } from "./settings";
 
 function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) => void }) {
   const { favorites } = usePrefs();
@@ -44,8 +45,11 @@ function Grid({ title, list, onSelect }: { title: string; list: ToolDef[]; onSel
 
 export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; onSearch: () => void }) {
   const { favorites } = usePrefs();
-  const favTools = favorites.map((id) => tools.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
-  const local = tools.filter((t) => !t.online).length;
+  const { settings } = useSettings();
+  const visible = tools.filter((t) => isToolVisible(t, settings));
+  const favTools = favorites.map((id) => visible.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+  const local = visible.filter((t) => !t.online).length;
+  const hiddenCount = tools.length - visible.length;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -55,10 +59,16 @@ export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; o
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold tracking-tight text-fg">DevKit</h1>
             <p className="text-base text-fg-muted flex items-center gap-1.5 flex-wrap">
-              {tools.length} developer tools
+              {visible.length} developer tools
               <span className="text-fg-faint">·</span>
               <WifiOff size={13} className="text-fg-faint" aria-hidden />
               {local} work offline
+              {hiddenCount > 0 && (
+                <>
+                  <span className="text-fg-faint">·</span>
+                  <span className="text-fg-faint">{hiddenCount} hidden in Settings</span>
+                </>
+              )}
             </p>
           </div>
           <Button icon={Search} onClick={onSearch} kbd="⌘K">
@@ -73,7 +83,7 @@ export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; o
           </p>
         )}
         {CATEGORY_ORDER.map((cat) => (
-          <Grid key={cat} title={cat} list={tools.filter((t) => t.category === cat)} onSelect={onSelect} />
+          <Grid key={cat} title={cat} list={visible.filter((t) => t.category === cat)} onSelect={onSelect} />
         ))}
       </div>
     </div>

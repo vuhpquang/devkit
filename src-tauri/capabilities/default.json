@@ -11,6 +11,9 @@
     "opener:default",
     "dialog:allow-open",
     "fs:allow-read-text-file",
+    "fs:allow-read-file",
+    "dialog:allow-save",
+    "fs:allow-write-text-file",
     "fs:default",
     {
       "identifier": "http:default",
@@ -26,6 +29,15 @@
         },
         {
           "url": "https://registry.npmjs.org/*"
+        },
+        {
+          "url": "https://api.github.com/*"
+        },
+        {
+          "url": "https://*/api/v4/*"
+        },
+        {
+          "url": "http://localhost:*/api/v4/*"
         }
       ]
     }

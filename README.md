@@ -94,9 +94,19 @@ Each tool is self-contained and registered in `src/tools/registry.ts`. Adding a 
 create a folder exporting a `ToolDef` (with a `description` and a lucide `icon`), build its
 screen from `src/lib/ui`, and append one import + `tools.push(...)` line.
 
+## Tools
+
+Formatters (JSON Format, JSON Editor with tree/text/table + side-by-side compare, SQL, XML) · Diff (JSON, text/file) ·
+Converters (JSON ↔ YAML, JS object → JSON, JSON ↔ CSV, timestamp, number base, cron, chmod) · Encoders (Base64,
+URL, URL parser, HTML entities, JWT) · Generators (hash, UUID, password, lorem ipsum) · Text (regex tester, case
+converter, Markdown preview) · Design (colour converter, PNG tint tester) · Network, online (WHOIS, DNS, IP info,
+npm, currency, GitLab pipelines & merge requests).
+
 ## Using it
 
 - **⌘K** jumps to any tool (arrow keys + Enter; recent tools first). **⌘D** stars the open tool.
+- **⌘,** Settings: hide tools you don't use, switch online tools off, editor font size, sidebar shown / hidden /
+  auto-hide (**⌃⌘S** toggles it).
 - Local tools update as you type; **Sample** loads an example. Online tools run on **Enter**.
 - Light, dark or follow the system: the switch at the bottom of the sidebar.
 

@@ -44,7 +44,7 @@ degrades gracefully (inline error on offline/timeout/rate-limit).
 ## v2 — Polish & Convenience
 
 - [ ] **Clipboard smart-detection** — detect clipboard content type, suggest matching tool
-- [ ] **Settings page** — default theme, font size, editor preferences
+- [x] **Settings** — theme, sidebar mode, startup, hide/show tools, online tools off, editor font size/wrap/line numbers, updates
 - [ ] **Input history** per tool (opt-in, local only)
 - [x] **Keyboard shortcuts**: ⌘K palette with arrow keys, ⌘D favorite, Enter runs online lookups
 - [x] **Favorites / pinned tools** at top of sidebar (+ recent tools in ⌘K)
@@ -54,14 +54,14 @@ degrades gracefully (inline error on offline/timeout/rate-limit).
 ## v3 — Expand the Toolbox
 
 Additional DevToys-class tools:
-- [ ] Color picker / converter (HEX ↔ RGB ↔ HSL)
-- [ ] Regex tester with match highlighting
-- [ ] Markdown preview
-- [ ] Cron expression parser
-- [ ] JSON ↔ CSV
+- [x] Color picker / converter (HEX ↔ RGB ↔ HSL)
+- [x] Regex tester with match highlighting
+- [x] Markdown preview
+- [x] Cron expression parser
+- [x] JSON ↔ CSV
 - [ ] Certificate decoder (X.509)
 - [ ] QR code generator
-- [ ] Text case converter + line sort/dedupe
+- [x] Text case converter (line sort/dedupe still open)
 - [ ] Image Base64 encode/decode
 - [ ] Hash file (not just text)
 

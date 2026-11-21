@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AlertCircle, CheckCircle2, ClipboardPaste, Eraser, Info, type LucideIcon } from "lucide-react";
 import { Button, CopyButton, cx } from "./primitives";
-import { CodeEditor, type Lang } from "./CodeEditor";
+import { CodeEditor, useEditorDefaults, type Lang } from "./CodeEditor";
 
 /* ---------------------------------------------------------------- ToolPage */
 
@@ -148,6 +148,7 @@ export function EditorPane({
   lineNumbers?: boolean;
 }) {
   const editable = !readOnly && !!onChange;
+  const defaults = useEditorDefaults();
   return (
     <Panel
       title={title}
@@ -179,10 +180,10 @@ export function EditorPane({
         readOnly={readOnly}
         lang={lang}
         placeholder={placeholder}
-        wrap={wrap}
+        wrap={wrap ?? defaults.wrap}
         ariaLabel={title}
         autoFocus={autoFocus}
-        lineNumbers={lineNumbers}
+        lineNumbers={lineNumbers ?? defaults.lineNumbers}
       />
     </Panel>
   );

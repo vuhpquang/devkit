@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownLeft, Search } from "lucide-react";
 import { tools } from "../tools/registry";
 import type { ToolDef } from "../tools/types";
-import { cx, IconTile, Kbd, OnlineBadge } from "../lib/ui";
+import { Badge, cx, IconTile, Kbd, OnlineBadge } from "../lib/ui";
 import { usePrefs } from "./prefs";
 import { searchTools } from "./search";
+import { isToolSearchable, isToolVisible, useSettings, type Settings } from "./settings";
 
 interface Props {
   open: boolean;
@@ -15,7 +16,8 @@ interface Props {
 type Row = { kind: "heading"; label: string } | { kind: "tool"; tool: ToolDef; index: number };
 
 /** Builds the visible rows: recent first when there's no query, ranked results otherwise. */
-function buildRows(query: string, recentIds: string[]): { rows: Row[]; items: ToolDef[] } {
+function buildRows(query: string, recentIds: string[], settings: Settings): { rows: Row[]; items: ToolDef[] } {
+  const pool = tools.filter((t) => isToolSearchable(t, settings));
   const rows: Row[] = [];
   const items: ToolDef[] = [];
   const add = (label: string, list: ToolDef[]) => {
@@ -27,11 +29,11 @@ function buildRows(query: string, recentIds: string[]): { rows: Row[]; items: To
     }
   };
   if (query.trim()) {
-    add("Tools", searchTools(tools, query));
+    add("Tools", searchTools(pool, query));
   } else {
-    const recent = recentIds.map((id) => tools.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+    const recent = recentIds.map((id) => pool.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
     add("Recent", recent);
-    add(recent.length ? "All tools" : "Tools", tools.filter((t) => !recent.includes(t)));
+    add(recent.length ? "All tools" : "Tools", pool.filter((t) => !recent.includes(t)));
   }
   return { rows, items };
 }
@@ -43,10 +45,11 @@ export function CommandPalette({ open, onClose, onSelect }: Props) {
 
 function PaletteBody({ onClose, onSelect }: Omit<Props, "open">) {
   const { recent } = usePrefs();
+  const { settings } = useSettings();
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const { rows, items } = useMemo(() => buildRows(q, recent), [q, recent]);
+  const { rows, items } = useMemo(() => buildRows(q, recent, settings), [q, recent, settings]);
 
   useEffect(() => setActive(0), [q]);
   useEffect(() => {
@@ -127,6 +130,7 @@ function PaletteBody({ onClose, onSelect }: Omit<Props, "open">) {
                   <div className="flex items-center gap-2">
                     <span className="text-base font-medium text-fg truncate">{r.tool.name}</span>
                     {r.tool.online && <OnlineBadge />}
+                    {!isToolVisible(r.tool, settings) && <Badge>Hidden</Badge>}
                   </div>
                   <div className="text-sm text-fg-faint truncate">{r.tool.description}</div>
                 </div>

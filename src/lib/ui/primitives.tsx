@@ -296,3 +296,87 @@ export function IconTile({ icon: Icon, size = 28 }: { icon: LucideIcon; size?: n
     </span>
   );
 }
+
+/* ------------------------------------------------------------------ Switch */
+
+/** macOS-style switch. Amber when on. */
+export function Switch({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  /** Accessible name (the visible row label usually). */
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cx(
+        "relative inline-flex shrink-0 h-[22px] w-[38px] rounded-full transition-colors duration-150",
+        "outline-none focus-visible:ring-2 focus-visible:ring-accent-ring disabled:opacity-45",
+        checked ? "bg-accent" : "bg-surface-3 border border-line-strong",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cx(
+          "absolute top-1/2 -translate-y-1/2 h-[18px] w-[18px] rounded-full bg-knob shadow-[0_1px_3px_rgb(0_0_0/0.3)] transition-[left] duration-150",
+          checked ? "left-[18px]" : "left-[2px]",
+        )}
+      />
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ Toggle */
+
+/** A button that stays pressed (flags, record types, permission bits, character sets). Amber when on. */
+export function Toggle({
+  on,
+  onToggle,
+  children,
+  label,
+  title,
+  size = "md",
+  mono = false,
+  className,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+  /** Accessible name when the visible text isn't enough (e.g. a single letter). */
+  label?: string;
+  title?: string;
+  size?: Size;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={label}
+      title={title}
+      onClick={onToggle}
+      className={cx(
+        "inline-flex items-center justify-center rounded-md border font-semibold transition-colors duration-100",
+        "outline-none focus-visible:ring-2 focus-visible:ring-accent-ring",
+        size === "sm" ? "h-7 px-2.5 text-sm" : "h-8 px-2.5 text-sm",
+        mono && "font-mono",
+        on ? "bg-accent-soft border-accent/50 text-accent-text" : "bg-surface border-line-strong text-fg-faint hover:text-fg",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
