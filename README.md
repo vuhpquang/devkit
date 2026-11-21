@@ -96,7 +96,7 @@ screen from `src/lib/ui`, and append one import + `tools.push(...)` line.
 
 ## Tools
 
-Formatters (JSON Format, JSON Editor with tree/text/table + side-by-side compare, SQL, XML) · Diff (JSON, text/file) ·
+Formatters (JSON Format — svelte-jsoneditor: text/tree/table, repair, sort, transform with JSONQuery/JMESPath/JSONPath/Lodash/JavaScript, JSON Schema validation, big numbers — SQL, XML) · Diff (JSON side by side with highlighted differences and a change list, text/file) ·
 Converters (SVG ↔ React / React Native, JSON ↔ YAML, JS object → JSON, JSON ↔ CSV, timestamp, number base, cron, chmod) · Encoders (Base64,
 URL, URL parser, HTML entities, JWT) · Generators (hash, UUID, password, lorem ipsum) · Text (regex tester, case
 converter, Markdown preview) · Design (colour converter, PNG tint tester, image converter SVG/PNG/JPEG/WebP/GIF/BMP/TIFF/ICO, batch image resize) · System, macOS (network info, port

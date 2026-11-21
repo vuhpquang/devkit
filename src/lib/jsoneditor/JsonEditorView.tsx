@@ -1,15 +1,35 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { createJSONEditor, Mode, type Content, type OnClassName } from "vanilla-jsoneditor";
+import {
+  createJSONEditor,
+  javascriptQueryLanguage,
+  jmespathQueryLanguage,
+  jsonpathQueryLanguage,
+  jsonQueryLanguage,
+  lodashQueryLanguage,
+  Mode,
+  type Content,
+  type JSONEditorPropsOptional,
+  type OnClassName,
+} from "vanilla-jsoneditor";
 import "vanilla-jsoneditor/themes/jse-theme-dark.css";
-import "./json-editor.css";
-import type { EditorContent } from "./logic";
+import "./jsoneditor.css";
+import type { EditorContent } from "./diff";
 
 type EditorPath = Parameters<ReturnType<typeof createJSONEditor>["scrollTo"]>[0];
+
+/** Every query language svelte-jsoneditor ships, for Transform (JSONQuery first, its default). */
+export const QUERY_LANGUAGES = [jsonQueryLanguage, jmespathQueryLanguage, jsonpathQueryLanguage, lodashQueryLanguage, javascriptQueryLanguage];
+
+export { Mode };
+export type EditorOptions = JSONEditorPropsOptional;
 
 export interface JsonEditorHandle {
   get: () => EditorContent;
   set: (content: EditorContent) => void;
   scrollTo: (path: string[]) => Promise<void>;
+  /** The document as text, formatted with the editor's indentation when it holds parsed JSON. */
+  getText: () => string;
+  focus: () => void;
 }
 
 /** Follows the app's `dark` class on <html>, live. */
@@ -30,15 +50,17 @@ interface Props {
   onChange?: (content: EditorContent) => void;
   onChangeMode?: (mode: Mode) => void;
   onClassName?: OnClassName;
+  /** Any other svelte-jsoneditor props (mode, indentation, validator, parser…), pushed with updateProps. */
+  options?: EditorOptions;
   ariaLabel: string;
 }
 
 /**
  * React wrapper around vanilla-jsoneditor (svelte-jsoneditor's framework-free build): created once,
- * destroyed on unmount, callbacks pushed through `updateProps`.
+ * destroyed on unmount, props pushed through `updateProps`.
  */
 export const JsonEditorView = forwardRef<JsonEditorHandle, Props>(function JsonEditorView(
-  { initial, onChange, onChangeMode, onClassName, ariaLabel },
+  { initial, onChange, onChangeMode, onClassName, options, ariaLabel },
   ref,
 ) {
   const host = useRef<HTMLDivElement>(null);
@@ -46,14 +68,17 @@ export const JsonEditorView = forwardRef<JsonEditorHandle, Props>(function JsonE
   const dark = useDarkMode();
   const cb = useRef({ onChange, onChangeMode });
   cb.current = { onChange, onChangeMode };
+  const firstOptions = useRef(options);
 
   useEffect(() => {
     if (!host.current) return;
     const ed = createJSONEditor({
       target: host.current,
       props: {
-        content: initial as Content,
         mode: Mode.tree,
+        queryLanguages: QUERY_LANGUAGES,
+        ...firstOptions.current,
+        content: initial as Content,
         ariaLabel,
         onChange: (content: Content) => cb.current.onChange?.(content as EditorContent),
         onChangeMode: (mode: Mode) => cb.current.onChangeMode?.(mode),
@@ -69,17 +94,30 @@ export const JsonEditorView = forwardRef<JsonEditorHandle, Props>(function JsonE
   }, []);
 
   useEffect(() => {
-    editor.current?.updateProps({ onClassName });
+    if (options && options !== firstOptions.current) void editor.current?.updateProps(options);
+  }, [options]);
+
+  useEffect(() => {
+    void editor.current?.updateProps({ onClassName });
   }, [onClassName]);
 
   useImperativeHandle(
     ref,
     () => ({
       get: () => (editor.current?.get() as EditorContent | undefined) ?? { json: undefined },
-      set: (content) => editor.current?.set(content as Content),
+      set: (content) => void editor.current?.set(content as Content),
       scrollTo: (path) => editor.current?.scrollTo(path as EditorPath) ?? Promise.resolve(),
+      getText: () => {
+        const c = editor.current?.get() as EditorContent | undefined;
+        if (!c) return "";
+        if ("text" in c) return c.text;
+        const indent = options?.indentation ?? 2;
+        const parser = options?.parser ?? JSON;
+        return parser.stringify(c.json, null, indent) ?? "";
+      },
+      focus: () => void editor.current?.focus(),
     }),
-    [],
+    [options],
   );
 
   return <div ref={host} className={`dk-jse h-full min-h-0 ${dark ? "jse-theme-dark" : ""}`} />;

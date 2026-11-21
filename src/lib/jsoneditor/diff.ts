@@ -148,7 +148,7 @@ export function statusText(s: CompareStatus): string {
     case "off":
       return "";
     case "invalid":
-      return `Invalid JSON on the ${s.side}`;
+      return `Invalid JSON in the ${s.side === "left" ? "original" : "modified"}`;
     case "same":
       return "No differences";
     case "diff":
@@ -184,3 +184,51 @@ export const SAMPLE_RIGHT = {
   database: { engine: "postgres", pool: 20, ssl: true, timeoutMs: 5000 },
   features: { search: true },
 };
+
+/* ------------------------------------------------------------- change list */
+
+export interface Change {
+  kind: "changed" | "added" | "removed";
+  path: JsonPath;
+  /** Value on the left (absent for "added"). */
+  before?: unknown;
+  /** Value on the right (absent for "removed"). */
+  after?: unknown;
+}
+
+function at(doc: unknown, path: JsonPath): unknown {
+  let v: unknown = doc;
+  for (const seg of path) {
+    if (v === null || typeof v !== "object") return undefined;
+    v = (v as Record<string, unknown>)[seg];
+  }
+  return v;
+}
+
+/** The differences of `d` as a readable list, in document order. */
+export function changeList(a: unknown, b: unknown, d: JsonDiff): Change[] {
+  return d.list.map((path) => {
+    const k = pathKey(path);
+    const l = d.left.get(k);
+    const r = d.right.get(k);
+    if (r === DIFF_CLASS.added) return { kind: "added", path, after: at(b, path) };
+    if (l === DIFF_CLASS.removed) return { kind: "removed", path, before: at(a, path) };
+    return { kind: "changed", path, before: at(a, path), after: at(b, path) };
+  });
+}
+
+/** `["items","2","name"]` → `items[2].name`; keys that aren't identifiers get `["…"]`. */
+export function formatPath(path: readonly string[]): string {
+  if (path.length === 0) return "(root)";
+  return path
+    .map((seg, i) =>
+      /^\d+$/.test(seg) ? `[${seg}]` : /^[A-Za-z_$][\w$]*$/.test(seg) ? (i === 0 ? seg : `.${seg}`) : `[${JSON.stringify(seg)}]`,
+    )
+    .join("");
+}
+
+/** Short one-line preview of a value for the change list. */
+export function preview(v: unknown, max = 80): string {
+  const s = v === undefined ? "undefined" : JSON.stringify(v);
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}

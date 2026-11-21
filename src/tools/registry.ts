@@ -15,8 +15,15 @@ export const CATEGORY_ORDER: Category[] = [
 // Tools are appended here as they are implemented.
 export const tools: ToolDef[] = [];
 
+/** Ids of tools that were merged into another one; favourites, recents and the last tool still resolve. */
+export const TOOL_ALIASES: Record<string, string> = {
+  // 0.5.0: JSON Editor became JSON Format (edit) + JSON Diff (compare).
+  "json-editor": "json-format",
+};
+
 export function getToolById(id: string): ToolDef | undefined {
-  return tools.find((t) => t.id === id);
+  const real = TOOL_ALIASES[id] ?? id;
+  return tools.find((t) => t.id === real);
 }
 
 // --- Tool registrations ---
@@ -80,8 +87,6 @@ import { tool as chmodCalculatorTool } from "./chmod-calculator";
 tools.push(chmodCalculatorTool);
 import { tool as passwordGeneratorTool } from "./password-generator";
 tools.push(passwordGeneratorTool);
-import { tool as jsonEditorTool } from "./json-editor";
-tools.push(jsonEditorTool);
 import { tool as pngTintTool } from "./png-tint";
 tools.push(pngTintTool);
 import { tool as gitlabTool } from "./gitlab";

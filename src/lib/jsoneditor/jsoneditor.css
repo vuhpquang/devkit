@@ -15,6 +15,18 @@
   /* The surrounding Panel draws the outer border. */
   --jse-main-border: none;
 
+  /* Messages ("Do you want to format the JSON?", parse errors, repairs): DevKit's soft tones, not the library's greens. */
+  --jse-message-success-background: var(--accent-soft);
+  --jse-message-success-color: var(--text);
+  --jse-message-info-background: var(--info-soft);
+  --jse-message-info-color: var(--text);
+  --jse-message-warning-background: var(--accent-soft);
+  --jse-message-warning-color: var(--text);
+  --jse-message-error-background: var(--danger-soft);
+  --jse-message-error-color: var(--danger);
+  --jse-message-action-background: var(--surface);
+  --jse-message-action-background-highlight: var(--surface-3);
+
   --jse-font-family: var(--font-sans);
   --jse-font-family-mono: var(--font-mono);
   --jse-font-size: var(--text-base, 13px);

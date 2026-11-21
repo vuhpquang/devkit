@@ -49,5 +49,8 @@ describe("prefs helpers", () => {
     localStorage.setItem("k", "{not json");
     expect(loadIds("k")).toEqual([]);
     expect(loadIds("missing")).toEqual([]);
+    // JSON Editor was merged into JSON Format: old favourites follow, without duplicates.
+    localStorage.setItem("k", JSON.stringify(["json-editor", "json-format", "uuid"]));
+    expect(loadIds("k")).toEqual(["json-format", "uuid"]);
   });
 });

@@ -39,6 +39,11 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   (resvg), resize (fit/fill/exact/percent, no upscaling of rasters unless asked), encode PNG/JPEG/WebP (lossy via
   libwebp, lossless)/GIF/BMP/TIFF/multi-size ICO. Bytes travel as a raw IPC body, options in the `x-devkit-options`
   header, the response is `u32 width, u32 height` (LE) + the file. WebKit can't encode WebP, hence Rust.
+- JSON Format and JSON Diff are built on svelte-jsoneditor (`vanilla-jsoneditor`), wrapped once in
+  `src/lib/jsoneditor/` (`JsonEditorView` takes any editor props via `options`; theme mapped to tokens in
+  `jsoneditor.css`; `diff.ts` = structural diff, change list, split geometry). JSON Diff reproduces the owner's
+  offline `jsoneditor.html` compare view. The old JSON Editor tool was merged into them; `TOOL_ALIASES` in
+  `registry.ts` keeps its id (`json-editor` → `json-format`) working for favourites, recents and the last tool.
 - Tool → tool hand-off: `sendTo(id, payload)` / `takeHandoff(id)` (`src/app/handoff.ts`); the shell opens and
   remounts the target. SVG ↔ React → Image Converter → Image Resize use it.
 - HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +

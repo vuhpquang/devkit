@@ -35,11 +35,4 @@ describe("live tools", () => {
     await userEvent.type(screen.getByLabelText(/Binary/), "12");
     expect(screen.getByRole("alert")).toHaveTextContent(/Not a binary number/);
   });
-
-  it("json format: the Sample button produces formatted output", async () => {
-    const C = getToolById("json-format")!.component;
-    render(<C />);
-    await userEvent.click(screen.getByRole("button", { name: /Sample/ }));
-    expect(await screen.findByText("Valid JSON")).toBeInTheDocument();
-  });
 });

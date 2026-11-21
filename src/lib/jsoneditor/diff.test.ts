@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  changeList,
+  formatPath,
+  preview,
   DIFF_CLASS,
   SAMPLE_LEFT,
   SAMPLE_RIGHT,
@@ -13,7 +16,7 @@ import {
   splitFor,
   statusText,
   step,
-} from "./logic";
+} from "./diff";
 
 const k = pathKey;
 
@@ -131,7 +134,7 @@ describe("status and navigation", () => {
     expect(statusText({ kind: "diff", count: 1, current: -1 })).toBe("1 difference");
     expect(statusText({ kind: "diff", count: 4, current: -1 })).toBe("4 differences");
     expect(statusText({ kind: "diff", count: 4, current: 2 })).toBe("3 / 4");
-    expect(statusText({ kind: "invalid", side: "right" })).toBe("Invalid JSON on the right");
+    expect(statusText({ kind: "invalid", side: "right" })).toBe("Invalid JSON in the modified");
     expect(statusText({ kind: "off" })).toBe("");
   });
   it("steps with wrap-around", () => {
@@ -140,5 +143,27 @@ describe("status and navigation", () => {
     expect(step(2, 1, 3)).toBe(0);
     expect(step(0, -1, 3)).toBe(2);
     expect(step(0, 1, 0)).toBe(-1);
+  });
+});
+
+
+describe("changeList", () => {
+  it("describes every difference with its values", () => {
+    const a = { name: "x", tags: ["a"], old: 1, nested: { v: 1 } };
+    const b = { name: "y", tags: ["a", "b"], nested: { v: 1 } };
+    const list = changeList(a, b, diffJson(a, b));
+    expect(list).toEqual([
+      { kind: "changed", path: ["name"], before: "x", after: "y" },
+      { kind: "added", path: ["tags", "1"], after: "b" },
+      { kind: "removed", path: ["old"], before: 1 },
+    ]);
+  });
+
+  it("formats paths and previews values", () => {
+    expect(formatPath([])).toBe("(root)");
+    expect(formatPath(["items", "2", "name"])).toBe("items[2].name");
+    expect(formatPath(["a b", "c"])).toBe('["a b"].c');
+    expect(preview({ a: 1 })).toBe('{"a":1}');
+    expect(preview("x".repeat(100), 10)).toBe(`"xxxxxxxx…`);
   });
 });

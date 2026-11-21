@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { TOOL_ALIASES } from "../tools/registry";
 
 const FAVORITES_KEY = "devkit.favorites";
 const RECENT_KEY = "devkit.recent";
@@ -14,11 +15,13 @@ export function pushRecent(list: string[], id: string, max = RECENT_MAX): string
   return [id, ...list.filter((x) => x !== id)].slice(0, max);
 }
 
-/** Reads a string[] from localStorage; anything else (missing, corrupt) is []. */
+/** Reads a string[] from localStorage; anything else (missing, corrupt) is []. Merged tools map to their new id. */
 export function loadIds(key: string): string[] {
   try {
     const v: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    if (!Array.isArray(v)) return [];
+    const ids = v.filter((x): x is string => typeof x === "string").map((id) => TOOL_ALIASES[id] ?? id);
+    return [...new Set(ids)];
   } catch {
     return [];
   }
