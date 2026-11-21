@@ -1,24 +1,62 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Dices, RefreshCw } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { CopyButton } from "../../lib/Toolbar";
+import { Button, EditorPane, Segmented, TextInput, ToolBar, ToolBarDivider, ToolPage } from "../../lib/ui";
 import { generateUuids } from "./logic";
 
+const MAX = 1000;
+
 function Uuid() {
-  const [count, setCount] = useState(1);
-  const [out, setOut] = useState("");
-  const inp = "rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm w-24";
-  const btn = "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700";
+  const [count, setCount] = useState("5");
+  const [ids, setIds] = useState<string[]>([]);
+  const [letterCase, setCase] = useState<"lower" | "upper">("lower");
+  const [hyphens, setHyphens] = useState<"with" | "without">("with");
+  const n = Math.min(MAX, Math.max(1, Math.floor(Number(count)) || 1));
+
+  const generate = useCallback(() => setIds(generateUuids(n)), [n]);
+  useEffect(() => {
+    setIds(generateUuids(5));
+  }, []);
+
+  const out = useMemo(
+    () =>
+      ids
+        .map((id) => (hyphens === "without" ? id.replace(/-/g, "") : id))
+        .map((id) => (letterCase === "upper" ? id.toUpperCase() : id))
+        .join("\n"),
+    [ids, hyphens, letterCase],
+  );
+
   return (
-    <ToolLayout title="UUID Generator">
-      <div className="flex gap-2 items-center">
-        <input type="number" min={1} className={inp} value={count} onChange={(e) => setCount(Number(e.target.value))} />
-        <button className={btn} onClick={() => setOut(generateUuids(count).join("\n"))}>Generate</button>
-        <CopyButton text={out} />
-      </div>
-      <TextPane label="UUIDs (v4)" value={out} readOnly />
-    </ToolLayout>
+    <ToolPage>
+      <ToolBar>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            generate();
+          }}
+        >
+          <span className="text-base text-fg-muted">Count</span>
+          <TextInput
+            aria-label="How many UUIDs"
+            type="number"
+            min={1}
+            max={MAX}
+            value={count}
+            onChange={(e) => setCount(e.target.value)}
+            className="w-20 text-right tabular-nums"
+          />
+          <Button type="submit" variant="primary" icon={RefreshCw} kbd="↵">
+            Generate
+          </Button>
+        </form>
+        <ToolBarDivider />
+        <Segmented label="Letter case" size="sm" value={letterCase} onChange={setCase} options={[{ value: "lower", label: "abc" }, { value: "upper", label: "ABC" }]} />
+        <Segmented label="Hyphens" size="sm" value={hyphens} onChange={setHyphens} options={[{ value: "with", label: "With hyphens" }, { value: "without", label: "No hyphens" }]} />
+      </ToolBar>
+      <EditorPane title={`UUID v4 · ${ids.length}`} value={out} readOnly className="flex-1" />
+    </ToolPage>
   );
 }
 
@@ -26,6 +64,8 @@ export const tool: ToolDef = {
   id: "uuid",
   name: "UUID Generator",
   category: "Generators",
+  description: "Random version 4 UUIDs, one or a thousand at a time",
+  icon: Dices,
   keywords: ["uuid", "guid", "v4", "id", "random"],
   component: Uuid,
 };

@@ -1,37 +1,70 @@
 import { useState } from "react";
+import { Hash } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import { convertBase, type Result } from "./logic";
+import { CopyButton, Panel, ToolPage, cx } from "../../lib/ui";
+import { convertBase, type Base } from "./logic";
+
+const FIELDS: { base: Base; label: string; key: "bin" | "oct" | "dec" | "hex"; placeholder: string }[] = [
+  { base: 10, label: "Decimal", key: "dec", placeholder: "255" },
+  { base: 16, label: "Hexadecimal", key: "hex", placeholder: "ff" },
+  { base: 2, label: "Binary", key: "bin", placeholder: "11111111" },
+  { base: 8, label: "Octal", key: "oct", placeholder: "377" },
+];
+
+/** Groups digits for reading: 4 for binary/hex, 3 for decimal/octal. */
+function group(s: string, base: Base): string {
+  const size = base === 2 || base === 16 ? 4 : 3;
+  const sep = base === 10 ? "," : " ";
+  return s.replace(new RegExp(`\\B(?=(.{${size}})+$)`, "g"), sep);
+}
 
 function NumberBase() {
-  const [value, setValue] = useState("");
-  const [base, setBase] = useState<2 | 8 | 10 | 16>(10);
-  const [result, setResult] = useState<Result>({ ok: true, bin: "", oct: "", dec: "", hex: "" });
-  const inp = "rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 font-mono text-sm";
+  const [src, setSrc] = useState<{ base: Base; value: string }>({ base: 10, value: "" });
+  const result = src.value.trim() ? convertBase(src.value, src.base) : null;
 
   return (
-    <ToolLayout title="Number Base Converter">
-      <div className="flex gap-2 items-center">
-        <input className={inp} value={value} onChange={(e) => setValue(e.target.value)} placeholder="255" />
-        <select className={inp} value={base} onChange={(e) => setBase(Number(e.target.value) as 2 | 8 | 10 | 16)}>
-          <option value={2}>Binary</option>
-          <option value={8}>Octal</option>
-          <option value={10}>Decimal</option>
-          <option value={16}>Hex</option>
-        </select>
-        <button className="px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700" onClick={() => setResult(convertBase(value, base))}>Convert</button>
-      </div>
-      {!result.ok && <ErrorBanner message={result.error} />}
-      {result.ok && (
-        <div className="font-mono text-sm grid grid-cols-[5rem_1fr] gap-1 max-w-md">
-          <span className="text-zinc-500">Binary</span><span>{result.bin}</span>
-          <span className="text-zinc-500">Octal</span><span>{result.oct}</span>
-          <span className="text-zinc-500">Decimal</span><span>{result.dec}</span>
-          <span className="text-zinc-500">Hex</span><span>{result.hex}</span>
+    <ToolPage scroll>
+      <p className="text-base text-fg-muted shrink-0">Type in any field — the others follow. Any size, spaces and 0x / 0b prefixes are fine.</p>
+      <Panel className="shrink-0 max-w-3xl">
+        <div className="divide-y divide-line">
+          {FIELDS.map((f) => {
+            const isSrc = f.base === src.base;
+            const value = isSrc ? src.value : result?.ok ? result[f.key] : "";
+            const err = isSrc && result && !result.ok ? result.error : null;
+            return (
+              <div key={f.base} className="px-4 py-3 grid grid-cols-[9.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5">
+                  <label htmlFor={`nb-${f.base}`} className="text-base font-medium text-fg-muted whitespace-nowrap">
+                    {f.label}
+                    <span className="ml-1.5 text-sm text-fg-faint font-normal">base {f.base}</span>
+                  </label>
+                  <input
+                    id={`nb-${f.base}`}
+                    value={value}
+                    placeholder={f.placeholder}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoFocus={f.base === 10}
+                    onChange={(e) => setSrc({ base: f.base, value: e.target.value })}
+                    className={cx(
+                      "flex-1 min-w-0 h-9 rounded-md border bg-surface px-3 font-mono text-md text-fg placeholder:text-fg-faint outline-none",
+                      "focus:ring-3 focus:ring-accent-ring/60",
+                      err ? "border-danger focus:border-danger" : "border-line-strong focus:border-accent",
+                    )}
+                  />
+                  <CopyButton text={value} />
+                {err ? (
+                  <p role="alert" className="col-start-2 text-sm text-danger">{err}</p>
+                ) : (
+                  value && (
+                    <p className="col-start-2 font-mono text-sm text-fg-faint break-all selectable">{group(value, f.base)}</p>
+                  )
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
-    </ToolLayout>
+      </Panel>
+    </ToolPage>
   );
 }
 
@@ -39,6 +72,8 @@ export const tool: ToolDef = {
   id: "number-base",
   name: "Number Base",
   category: "Converters",
+  description: "Convert integers between decimal, hex, binary and octal",
+  icon: Hash,
   keywords: ["number", "base", "binary", "hex", "octal", "decimal", "radix"],
   component: NumberBase,
 };

@@ -1,33 +1,45 @@
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
+import { Fingerprint } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { CopyButton, PasteButton, ClearButton } from "../../lib/Toolbar";
+import { EditorPane, KeyValueList, Panel, Segmented, ToolBar, ToolPage } from "../../lib/ui";
 import { hashAll } from "./logic";
 
 function Hash() {
   const [input, setInput] = useState("");
-  const r = hashAll(input);
-  const Row = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex items-center gap-2">
-      <span className="w-20 text-zinc-500 text-sm">{label}</span>
-      <code className="flex-1 break-all text-sm">{value}</code>
-      <CopyButton text={value} />
-    </div>
-  );
+  const [upper, setUpper] = useState<"lower" | "upper">("lower");
+  const deferred = useDeferredValue(input);
+  const r = useMemo(() => hashAll(deferred), [deferred]);
+  const fmt = (s: string) => (upper === "upper" ? s.toUpperCase() : s);
+
   return (
-    <ToolLayout title="Hash Generator">
-      <div className="flex gap-2">
-        <PasteButton onPaste={setInput} />
-        <ClearButton onClick={() => setInput("")} />
-      </div>
-      <TextPane label="Input" value={input} onChange={setInput} />
-      <div className="flex flex-col gap-2">
-        <Row label="MD5" value={r.md5} />
-        <Row label="SHA-1" value={r.sha1} />
-        <Row label="SHA-256" value={r.sha256} />
-      </div>
-    </ToolLayout>
+    <ToolPage>
+      <ToolBar>
+        <Segmented
+          label="Letter case"
+          size="sm"
+          value={upper}
+          onChange={setUpper}
+          options={[
+            { value: "lower", label: "abc" },
+            { value: "upper", label: "ABC" },
+          ]}
+        />
+        <span className="text-sm text-fg-faint">Hashes of the UTF-8 text, updated as you type</span>
+      </ToolBar>
+      <EditorPane title="Input" value={input} onChange={setInput} placeholder="Text to hash" wrap autoFocus className="flex-1" />
+      <Panel title="Digests" icon={Fingerprint} className="shrink-0" meta={input ? undefined : "of an empty string"}>
+        <KeyValueList
+          copy
+          mono
+          labelWidth="5rem"
+          rows={[
+            { label: "MD5", value: fmt(r.md5) },
+            { label: "SHA-1", value: fmt(r.sha1) },
+            { label: "SHA-256", value: fmt(r.sha256) },
+          ]}
+        />
+      </Panel>
+    </ToolPage>
   );
 }
 
@@ -35,6 +47,8 @@ export const tool: ToolDef = {
   id: "hash",
   name: "Hash Generator",
   category: "Generators",
+  description: "MD5, SHA-1 and SHA-256 digests of text",
+  icon: Fingerprint,
   keywords: ["hash", "md5", "sha", "sha256", "checksum", "digest"],
   component: Hash,
 };

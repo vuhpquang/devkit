@@ -1,32 +1,39 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Braces } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import { CopyButton, PasteButton, ClearButton } from "../../lib/Toolbar";
-import { formatJson, minifyJson, type Result } from "./logic";
+import { Segmented, TransformTool, type TransformMode } from "../../lib/ui";
+import { formatJson, minifyJson } from "./logic";
+
+const SAMPLE = `{"name":"devkit","version":"1.0.0","private":true,"tags":["json","format"],"author":{"name":"Ha Phung Quang Vu","url":"https://vuhpquang.com"},"stars":42,"license":null}`;
+
+type Mode = "format" | "minify";
 
 function JsonFormat() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<Result>({ ok: true, value: "" });
-  const out = result.ok ? result.value : "";
-  const btn = "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700";
-
+  const [indent, setIndent] = useState<"2" | "4">("2");
+  const modes = useMemo<TransformMode<Mode>[]>(
+    () => [
+      { value: "format", label: "Format", run: (s) => formatJson(s, Number(indent)), inputLang: "json", outputLang: "json", okText: "Valid JSON", placeholder: '{"hello": "world"}' },
+      { value: "minify", label: "Minify", run: minifyJson, inputLang: "json", outputLang: "json", okText: "Valid JSON · minified", placeholder: '{"hello": "world"}' },
+    ],
+    [indent],
+  );
   return (
-    <ToolLayout title="JSON Format / Validate">
-      <div className="flex gap-2">
-        <button className={btn} onClick={() => setResult(formatJson(input, 2))}>Format</button>
-        <button className={btn} onClick={() => setResult(minifyJson(input))}>Minify</button>
-        <PasteButton onPaste={setInput} />
-        <ClearButton onClick={() => { setInput(""); setResult({ ok: true, value: "" }); }} />
-        <CopyButton text={out} />
-      </div>
-      {!result.ok && <ErrorBanner message={result.error} />}
-      <div className="flex gap-4 flex-1 min-h-0">
-        <TextPane label="Input" value={input} onChange={setInput} placeholder='{"hello":"world"}' />
-        <TextPane label="Output" value={out} readOnly />
-      </div>
-    </ToolLayout>
+    <TransformTool
+      modes={modes}
+      sample={SAMPLE}
+      options={
+        <Segmented
+          label="Indent"
+          size="sm"
+          value={indent}
+          onChange={setIndent}
+          options={[
+            { value: "2", label: "2 spaces" },
+            { value: "4", label: "4 spaces" },
+          ]}
+        />
+      }
+    />
   );
 }
 
@@ -34,6 +41,8 @@ export const tool: ToolDef = {
   id: "json-format",
   name: "JSON Format",
   category: "Formatters",
+  description: "Pretty-print, minify and validate JSON",
+  icon: Braces,
   keywords: ["json", "pretty", "minify", "validate", "beautify"],
   component: JsonFormat,
 };

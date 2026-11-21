@@ -1,38 +1,25 @@
-import { useState } from "react";
+import { Binary } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import { CopyButton, PasteButton, ClearButton } from "../../lib/Toolbar";
-import { encodeBase64, decodeBase64, type Result } from "./logic";
+import { TransformTool, type TransformMode } from "../../lib/ui";
+import { encodeBase64, decodeBase64 } from "./logic";
+
+type Mode = "encode" | "decode";
+
+const MODES: TransformMode<Mode>[] = [
+  { value: "encode", label: "Encode", run: encodeBase64, okText: "Encoded", placeholder: "Text to encode", inverse: "decode" },
+  { value: "decode", label: "Decode", run: decodeBase64, okText: "Decoded", placeholder: "Base64 to decode", inverse: "encode" },
+];
 
 function Base64Tool() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<Result>({ ok: true, value: "" });
-  const out = result.ok ? result.value : "";
-  const btn = "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700";
-  return (
-    <ToolLayout title="Base64 Encode / Decode">
-      <div className="flex gap-2">
-        <button className={btn} onClick={() => setResult(encodeBase64(input))}>Encode</button>
-        <button className={btn} onClick={() => setResult(decodeBase64(input))}>Decode</button>
-        <PasteButton onPaste={setInput} />
-        <ClearButton onClick={() => { setInput(""); setResult({ ok: true, value: "" }); }} />
-        <CopyButton text={out} />
-      </div>
-      {!result.ok && <ErrorBanner message={result.error} />}
-      <div className="flex gap-4 flex-1 min-h-0">
-        <TextPane label="Input" value={input} onChange={setInput} />
-        <TextPane label="Output" value={out} readOnly />
-      </div>
-    </ToolLayout>
-  );
+  return <TransformTool modes={MODES} sample={{ encode: "Hello, DevKit! Xin chào 👋", decode: "SGVsbG8sIERldktpdCEgWGluIGNow6BvIPCfkYs=" }} wrapByDefault />;
 }
 
 export const tool: ToolDef = {
   id: "base64",
   name: "Base64",
   category: "Encoders",
+  description: "Encode text to Base64 and decode it back (UTF-8)",
+  icon: Binary,
   keywords: ["base64", "encode", "decode"],
   component: Base64Tool,
 };

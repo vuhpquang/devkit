@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Globe, Server } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { ErrorBanner } from "../../lib/ErrorBanner";
+import { Badge, CopyButton, EmptyState, LookupBar, Notice, Panel, ToolPage, cx } from "../../lib/ui";
 import { dnsLookup, defaultTypes, type DnsRecordType, type DnsRecord } from "./logic";
 
 const ALL_TYPES: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "CNAME"];
@@ -13,13 +13,8 @@ function DnsLookup() {
   const [error, setError] = useState<string | null>(null);
   const [records, setRecords] = useState<DnsRecord[] | null>(null);
 
-  const primaryBtn =
-    "px-4 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed";
-
   function toggleType(type: DnsRecordType) {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
+    setSelectedTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
   }
 
   async function handleLookup() {
@@ -27,8 +22,7 @@ function DnsLookup() {
     setRecords(null);
     setLoading(true);
     try {
-      const result = await dnsLookup(domain, selectedTypes);
-      setRecords(result.records);
+      setRecords((await dnsLookup(domain, selectedTypes)).records);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -36,106 +30,82 @@ function DnsLookup() {
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && !loading && selectedTypes.length > 0) {
-      handleLookup();
-    }
-  }
-
-  // Group records by type for display
-  const grouped: Partial<Record<DnsRecordType, DnsRecord[]>> = {};
-  if (records) {
-    for (const record of records) {
-      if (!grouped[record.type]) grouped[record.type] = [];
-      grouped[record.type]!.push(record);
-    }
-  }
-
-  const hasRecords = records !== null && records.length > 0;
-  const isEmpty = records !== null && records.length === 0;
+  const grouped = ALL_TYPES.map((type) => ({ type, rows: (records ?? []).filter((r) => r.type === type) })).filter(
+    (g) => g.rows.length > 0,
+  );
 
   return (
-    <ToolLayout title="DNS Lookup">
-      {/* Domain input row */}
-      <div className="flex gap-2 items-center">
-        <input
-          type="text"
-          className="flex-1 px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="example.com"
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-        />
-        <button
-          className={primaryBtn}
-          onClick={handleLookup}
-          disabled={loading || selectedTypes.length === 0}
-        >
-          {loading ? "Looking up…" : "Lookup"}
-        </button>
-      </div>
-
-      {/* Record type checkboxes */}
-      <div className="flex gap-3 flex-wrap">
-        {ALL_TYPES.map((type) => (
-          <label
-            key={type}
-            className="flex items-center gap-1.5 text-sm cursor-pointer select-none"
-          >
-            <input
-              type="checkbox"
-              checked={selectedTypes.includes(type)}
-              onChange={() => toggleType(type)}
-              disabled={loading}
-              className="accent-blue-600"
-            />
-            {type}
-          </label>
-        ))}
-      </div>
-
-      {/* Error */}
-      <ErrorBanner message={error} />
-
-      {/* Empty state */}
-      {isEmpty && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">No records found.</p>
-      )}
-
-      {/* Results grouped by type */}
-      {hasRecords && (
-        <div className="flex flex-col gap-4">
-          {ALL_TYPES.filter((t) => grouped[t]?.length).map((type) => (
-            <div key={type}>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
+    <ToolPage scroll>
+      <LookupBar
+        icon={Globe}
+        ariaLabel="Domain"
+        value={domain}
+        onChange={setDomain}
+        onSubmit={handleLookup}
+        loading={loading}
+        canSubmit={!!domain.trim() && selectedTypes.length > 0}
+        placeholder="example.com"
+      >
+        <div role="group" aria-label="Record types" className="flex items-center gap-1">
+          {ALL_TYPES.map((type) => {
+            const on = selectedTypes.includes(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleType(type)}
+                className={cx(
+                  "h-8 px-2.5 rounded-md text-sm font-semibold font-mono border transition-colors duration-100 outline-none focus-visible:ring-2 focus-visible:ring-accent-ring",
+                  on ? "bg-accent-soft border-accent/50 text-accent-text" : "bg-surface border-line-strong text-fg-faint hover:text-fg",
+                )}
+              >
                 {type}
-              </h2>
-              <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-700">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 dark:bg-zinc-800 text-left">
-                    <tr>
-                      <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300 w-1/3">Name</th>
-                      <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300 w-16">TTL</th>
-                      <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">Data</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {grouped[type]!.map((rec, i) => (
-                      <tr key={i} className="bg-white dark:bg-zinc-900">
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{rec.name}</td>
-                        <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400">{rec.ttl}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-700 dark:text-zinc-300 break-all">{rec.data}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
+      </LookupBar>
+      {error && <Notice>{error}</Notice>}
+      {records === null && !error && (
+        <EmptyState icon={Server} title={loading ? "Querying Cloudflare DNS…" : "Look up DNS records"} className="flex-1">
+          {!loading && "Pick record types, enter a domain and press Enter. Queries go over HTTPS to 1.1.1.1."}
+        </EmptyState>
       )}
-    </ToolLayout>
+      {records !== null && records.length === 0 && (
+        <EmptyState icon={Server} title="No records found" className="flex-1">
+          {domain} has none of the selected record types.
+        </EmptyState>
+      )}
+      {grouped.map(({ type, rows }) => (
+        <Panel key={type} title={type} meta={`${rows.length} ${rows.length === 1 ? "record" : "records"}`} className="shrink-0">
+          <table className="w-full text-base">
+            <thead>
+              <tr className="text-left text-sm text-fg-faint border-b border-line">
+                <th className="font-medium px-3 py-1.5 w-[32%]">Name</th>
+                <th className="font-medium px-3 py-1.5 w-20 text-right">TTL</th>
+                <th className="font-medium px-3 py-1.5">Data</th>
+                <th className="w-10" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((rec, i) => (
+                <tr key={i} className="group">
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-fg-muted break-all align-top selectable">{rec.name}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-fg-faint align-top">
+                    <Badge>{rec.ttl}s</Badge>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-fg break-all align-top selectable">{rec.data}</td>
+                  <td className="pr-1.5 align-top opacity-60 group-hover:opacity-100">
+                    <CopyButton text={rec.data} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+      ))}
+    </ToolPage>
   );
 }
 
@@ -143,6 +113,8 @@ export const tool: ToolDef = {
   id: "dns-lookup",
   name: "DNS Lookup",
   category: "Network",
+  description: "A, AAAA, MX, TXT and CNAME records over DNS-over-HTTPS",
+  icon: Server,
   keywords: ["dns", "lookup", "a", "aaaa", "mx", "txt", "cname", "nameserver"],
   online: true,
   component: DnsLookup,

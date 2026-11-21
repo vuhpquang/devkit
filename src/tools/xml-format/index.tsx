@@ -1,37 +1,24 @@
-import { useState } from "react";
+import { CodeXml } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import { CopyButton, PasteButton, ClearButton } from "../../lib/Toolbar";
-import { formatXml, type Result } from "./logic";
+import { TransformTool, type TransformMode } from "../../lib/ui";
+import { formatXml } from "./logic";
+
+const SAMPLE = `<?xml version="1.0"?><catalog><book id="bk101"><author>Gambardella, Matthew</author><title>XML Developer's Guide</title><price>44.95</price></book><book id="bk102"><author>Ralls, Kim</author><title>Midnight Rain</title><price>5.95</price></book></catalog>`;
+
+const MODES: TransformMode<"format">[] = [
+  { value: "format", label: "Format", run: formatXml, inputLang: "xml", outputLang: "xml", okText: "Valid XML", placeholder: "<root><child>value</child></root>" },
+];
 
 function XmlFormat() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<Result>({ ok: true, value: "" });
-  const out = result.ok ? result.value : "";
-  const btn = "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700";
-  return (
-    <ToolLayout title="XML Format / Validate">
-      <div className="flex gap-2">
-        <button className={btn} onClick={() => setResult(formatXml(input))}>Format</button>
-        <PasteButton onPaste={setInput} />
-        <ClearButton onClick={() => { setInput(""); setResult({ ok: true, value: "" }); }} />
-        <CopyButton text={out} />
-      </div>
-      {!result.ok && <ErrorBanner message={result.error} />}
-      <div className="flex gap-4 flex-1 min-h-0">
-        <TextPane label="Input" value={input} onChange={setInput} placeholder="<root><child>value</child></root>" />
-        <TextPane label="Output" value={out} readOnly />
-      </div>
-    </ToolLayout>
-  );
+  return <TransformTool modes={MODES} sample={SAMPLE} />;
 }
 
 export const tool: ToolDef = {
   id: "xml-format",
   name: "XML Format",
   category: "Formatters",
+  description: "Indent and validate XML documents",
+  icon: CodeXml,
   keywords: ["xml", "format", "validate", "beautify"],
   component: XmlFormat,
 };

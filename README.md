@@ -83,14 +83,22 @@ npx tsc --noEmit && npm run build
 projects/devkit/
   src-tauri/        # Rust shell + native commands (file dialogs)
   src/
-    app/            # shell: sidebar, command palette, theme
+    app/            # shell: sidebar, home grid, ⌘K palette, theme, favorites/recent
     tools/          # one folder per tool (logic.ts + index.tsx + tests)
       registry.ts   # aggregates all tools into ToolDef[]
-    lib/            # shared UI primitives
+    lib/ui/         # design system: tokens live in src/index.css; Button, Segmented,
+                    # EditorPane (CodeMirror 6), TransformTool, LookupBar, Panel, …
 ```
 
 Each tool is self-contained and registered in `src/tools/registry.ts`. Adding a tool =
-create a folder exporting a `ToolDef` and append one import + `tools.push(...)` line.
+create a folder exporting a `ToolDef` (with a `description` and a lucide `icon`), build its
+screen from `src/lib/ui`, and append one import + `tools.push(...)` line.
+
+## Using it
+
+- **⌘K** jumps to any tool (arrow keys + Enter; recent tools first). **⌘D** stars the open tool.
+- Local tools update as you type; **Sample** loads an example. Online tools run on **Enter**.
+- Light, dark or follow the system: the switch at the bottom of the sidebar.
 
 ---
 

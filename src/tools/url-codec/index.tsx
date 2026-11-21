@@ -1,31 +1,22 @@
-import { useState } from "react";
+import { Link } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { TextPane } from "../../lib/TextPane";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import { CopyButton, PasteButton, ClearButton } from "../../lib/Toolbar";
-import { encodeUrl, decodeUrl, type Result } from "./logic";
+import { TransformTool, type TransformMode } from "../../lib/ui";
+import { encodeUrl, decodeUrl } from "./logic";
+
+type Mode = "encode" | "decode";
+
+const MODES: TransformMode<Mode>[] = [
+  { value: "encode", label: "Encode", run: encodeUrl, okText: "Encoded", placeholder: "Text or URL component to encode", inverse: "decode" },
+  { value: "decode", label: "Decode", run: decodeUrl, okText: "Decoded", placeholder: "Percent-encoded text to decode", inverse: "encode" },
+];
 
 function UrlCodec() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<Result>({ ok: true, value: "" });
-  const out = result.ok ? result.value : "";
-  const btn = "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700";
   return (
-    <ToolLayout title="URL Encode / Decode">
-      <div className="flex gap-2">
-        <button className={btn} onClick={() => setResult(encodeUrl(input))}>Encode</button>
-        <button className={btn} onClick={() => setResult(decodeUrl(input))}>Decode</button>
-        <PasteButton onPaste={setInput} />
-        <ClearButton onClick={() => { setInput(""); setResult({ ok: true, value: "" }); }} />
-        <CopyButton text={out} />
-      </div>
-      {!result.ok && <ErrorBanner message={result.error} />}
-      <div className="flex gap-4 flex-1 min-h-0">
-        <TextPane label="Input" value={input} onChange={setInput} />
-        <TextPane label="Output" value={out} readOnly />
-      </div>
-    </ToolLayout>
+    <TransformTool
+      modes={MODES}
+      sample={{ encode: "q=đà nẵng & sort=price desc", decode: "q%3D%C4%91%C3%A0%20n%E1%BA%B5ng%20%26%20sort%3Dprice%20desc" }}
+      wrapByDefault
+    />
   );
 }
 
@@ -33,6 +24,8 @@ export const tool: ToolDef = {
   id: "url-codec",
   name: "URL Encode / Decode",
   category: "Encoders",
+  description: "Percent-encode text for URLs, or decode it",
+  icon: Link,
   keywords: ["url", "uri", "encode", "decode", "percent"],
   component: UrlCodec,
 };

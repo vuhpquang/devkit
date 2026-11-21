@@ -1,5 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CornerDownLeft, Search } from "lucide-react";
 import { tools } from "../tools/registry";
+import type { ToolDef } from "../tools/types";
+import { cx, IconTile, Kbd, OnlineBadge } from "../lib/ui";
+import { usePrefs } from "./prefs";
+import { searchTools } from "./search";
 
 interface Props {
   open: boolean;
@@ -7,64 +12,143 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-export function CommandPalette({ open, onClose, onSelect }: Props) {
-  const [q, setQ] = useState("");
-  const matches = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return tools.filter(
-      (t) =>
-        !s ||
-        t.name.toLowerCase().includes(s) ||
-        t.keywords.some((k) => k.toLowerCase().includes(s))
-    );
-  }, [q]);
+type Row = { kind: "heading"; label: string } | { kind: "tool"; tool: ToolDef; index: number };
 
+/** Builds the visible rows: recent first when there's no query, ranked results otherwise. */
+function buildRows(query: string, recentIds: string[]): { rows: Row[]; items: ToolDef[] } {
+  const rows: Row[] = [];
+  const items: ToolDef[] = [];
+  const add = (label: string, list: ToolDef[]) => {
+    if (list.length === 0) return;
+    rows.push({ kind: "heading", label });
+    for (const tool of list) {
+      rows.push({ kind: "tool", tool, index: items.length });
+      items.push(tool);
+    }
+  };
+  if (query.trim()) {
+    add("Tools", searchTools(tools, query));
+  } else {
+    const recent = recentIds.map((id) => tools.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+    add("Recent", recent);
+    add(recent.length ? "All tools" : "Tools", tools.filter((t) => !recent.includes(t)));
+  }
+  return { rows, items };
+}
+
+export function CommandPalette({ open, onClose, onSelect }: Props) {
   if (!open) return null;
+  return <PaletteBody onClose={onClose} onSelect={onSelect} />;
+}
+
+function PaletteBody({ onClose, onSelect }: Omit<Props, "open">) {
+  const { recent } = usePrefs();
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+  const { rows, items } = useMemo(() => buildRows(q, recent), [q, recent]);
+
+  useEffect(() => setActive(0), [q]);
+  useEffect(() => {
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-index="${active}"]`)
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [active]);
+
+  const choose = (t: ToolDef | undefined) => {
+    if (!t) return;
+    onSelect(t.id);
+    onClose();
+  };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-start justify-center pt-32 z-50"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-scrim dk-fade-in flex items-start justify-center pt-[14vh] px-4" onMouseDown={onClose}>
       <div
-        className="w-[32rem] max-w-[90vw] rounded-lg bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Jump to a tool"
+        className="w-[36rem] max-w-full rounded-xl bg-surface border border-line shadow-pop overflow-hidden dk-pop-in"
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <input
-          autoFocus
-          className="w-full px-4 py-3 text-sm bg-transparent outline-none border-b border-zinc-200 dark:border-zinc-800"
-          placeholder="Jump to a tool…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onClose();
-            if (e.key === "Enter" && matches[0]) {
-              onSelect(matches[0].id);
-              onClose();
-            }
-          }}
-        />
-        <ul className="max-h-72 overflow-auto">
-          {matches.map((t) => (
-            <li key={t.id}>
-              <button
-                className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                onClick={() => {
-                  onSelect(t.id);
-                  onClose();
-                }}
-              >
-                <span className="text-zinc-400 text-xs mr-2">{t.category}</span>
-                {t.name}
-                {t.online && (
-                  <span className="text-[10px] px-1 py-0 rounded bg-sky-500/15 text-sky-400 font-medium ml-1 leading-tight">
-                    online
-                  </span>
+        <div className="flex items-center gap-3 px-4 h-[52px] border-b border-line">
+          <Search size={18} className="text-fg-faint shrink-0" aria-hidden />
+          <input
+            autoFocus
+            role="combobox"
+            aria-expanded
+            aria-controls="palette-list"
+            aria-activedescendant={items[active] ? `palette-${items[active].id}` : undefined}
+            className="flex-1 bg-transparent outline-none text-md text-fg placeholder:text-fg-faint"
+            placeholder="Jump to a tool…"
+            spellCheck={false}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onClose();
+              else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((i) => Math.min(i + 1, items.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                choose(items[active]);
+              }
+            }}
+          />
+          <Kbd>esc</Kbd>
+        </div>
+
+        <div ref={listRef} id="palette-list" role="listbox" className="max-h-[min(26rem,60vh)] overflow-y-auto p-1.5">
+          {items.length === 0 && (
+            <p className="px-3 py-8 text-center text-base text-fg-faint">No tools match “{q.trim()}”</p>
+          )}
+          {rows.map((r) =>
+            r.kind === "heading" ? (
+              <div key={`h-${r.label}`} className="px-2.5 pt-2 pb-1 text-xs font-semibold text-fg-faint">
+                {r.label}
+              </div>
+            ) : (
+              <div
+                key={r.tool.id}
+                id={`palette-${r.tool.id}`}
+                role="option"
+                aria-selected={r.index === active}
+                data-index={r.index}
+                onMouseMove={() => setActive(r.index)}
+                onClick={() => choose(r.tool)}
+                className={cx(
+                  "flex items-center gap-3 px-2.5 h-11 rounded-lg",
+                  r.index === active ? "bg-accent-soft" : "",
                 )}
-              </button>
-            </li>
-          ))}
-        </ul>
+              >
+                <IconTile icon={r.tool.icon} size={26} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-medium text-fg truncate">{r.tool.name}</span>
+                    {r.tool.online && <OnlineBadge />}
+                  </div>
+                  <div className="text-sm text-fg-faint truncate">{r.tool.description}</div>
+                </div>
+                <span className="text-sm text-fg-faint shrink-0">{r.tool.category}</span>
+                {r.index === active && <CornerDownLeft size={14} className="text-fg-faint shrink-0" aria-hidden />}
+              </div>
+            ),
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 px-4 h-9 border-t border-line bg-surface-2/60 text-sm text-fg-faint">
+          <span className="flex items-center gap-1.5">
+            <Kbd>↑</Kbd>
+            <Kbd>↓</Kbd> to move
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Kbd>↵</Kbd> to open
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Kbd>esc</Kbd> to close
+          </span>
+        </div>
       </div>
     </div>
   );

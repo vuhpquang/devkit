@@ -1,19 +1,8 @@
 import { useState } from "react";
+import { MapPin, Network } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { ErrorBanner } from "../../lib/ErrorBanner";
+import { EmptyState, KeyValueList, LookupBar, Notice, Panel, ToolPage } from "../../lib/ui";
 import { ipLookup, type IpInfo as IpInfoData } from "./logic";
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-      <span className="w-32 shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
-        {label}
-      </span>
-      <span className="text-sm font-medium break-all">{value}</span>
-    </div>
-  );
-}
 
 function IpInfo() {
   const [input, setInput] = useState("");
@@ -21,16 +10,12 @@ function IpInfo() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<IpInfoData | null>(null);
 
-  const btn =
-    "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed";
-
   async function handleLookup() {
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const info = await ipLookup(input);
-      setResult(info);
+      setResult(await ipLookup(input));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -38,57 +23,44 @@ function IpInfo() {
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && !loading) {
-      handleLookup();
-    }
-  }
-
   return (
-    <ToolLayout title="IP Info">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="IP address or leave blank for your IP"
-          className="flex-1 px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-zinc-400"
-        />
-        <button
-          className={btn}
-          onClick={handleLookup}
-          disabled={loading}
-        >
-          {loading ? "Looking up..." : "Lookup"}
-        </button>
-      </div>
-
-      <ErrorBanner message={error} />
-
-      {!result && !error && !loading && (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          Leave blank to look up your own IP
-        </p>
-      )}
-
-      {result && (
-        <div className="rounded-md border border-zinc-200 dark:border-zinc-700 px-4 py-2">
-          <InfoRow label="IP" value={result.ip} />
-          <InfoRow
-            label="Country"
-            value={`${result.country} (${result.countryCode})`}
+    <ToolPage scroll>
+      <LookupBar
+        icon={Network}
+        ariaLabel="IP address"
+        value={input}
+        onChange={setInput}
+        onSubmit={handleLookup}
+        loading={loading}
+        placeholder="8.8.8.8 — leave empty for your own IP"
+        action={input.trim() ? "Look up" : "Look up my IP"}
+      />
+      {error && <Notice>{error}</Notice>}
+      {result ? (
+        <Panel title={result.ip} icon={MapPin} meta={[result.city, result.country].filter(Boolean).join(", ")} className="shrink-0 max-w-3xl">
+          <KeyValueList
+            copy
+            rows={[
+              { label: "IP", value: result.ip, mono: true },
+              { label: "Country", value: `${result.country} (${result.countryCode})` },
+              { label: "Region", value: result.region },
+              { label: "City", value: result.city },
+              { label: "Coordinates", value: `${result.lat}, ${result.lon}`, mono: true },
+              { label: "Time zone", value: result.timezone },
+              { label: "ISP", value: result.isp },
+              { label: "Organization", value: result.org },
+              { label: "AS", value: result.as, mono: true },
+            ]}
           />
-          <InfoRow label="Region" value={result.region} />
-          <InfoRow label="City" value={result.city} />
-          <InfoRow label="Lat / Lon" value={`${result.lat}, ${result.lon}`} />
-          <InfoRow label="ISP" value={result.isp} />
-          <InfoRow label="Organization" value={result.org} />
-          <InfoRow label="ASN" value={result.as} />
-          <InfoRow label="Timezone" value={result.timezone} />
-        </div>
+        </Panel>
+      ) : (
+        !error && (
+          <EmptyState icon={MapPin} title={loading ? "Looking up…" : "Where is an IP address?"} className="flex-1">
+            {!loading && "Location, network and owner of any public IPv4 or IPv6 address, via ip-api.com."}
+          </EmptyState>
+        )
       )}
-    </ToolLayout>
+    </ToolPage>
   );
 }
 
@@ -96,6 +68,8 @@ export const tool: ToolDef = {
   id: "ip-info",
   name: "IP Info",
   category: "Network",
+  description: "Location, ISP and AS of an IP address",
+  icon: MapPin,
   keywords: ["ip", "geolocation", "asn", "org", "isp", "whois", "geo"],
   online: true,
   component: IpInfo,

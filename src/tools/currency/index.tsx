@@ -1,156 +1,103 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeftRight, Coins } from "lucide-react";
 import type { ToolDef } from "../types";
-import { ToolLayout } from "../../lib/ToolLayout";
-import { ErrorBanner } from "../../lib/ErrorBanner";
-import {
-  fetchRates,
-  convertCurrency,
-  commonCurrencies,
-  type ExchangeRates,
-} from "./logic";
+import { Button, CopyButton, Field, Notice, Select, Spinner, TextInput, ToolPage } from "../../lib/ui";
+import { fetchRates, convertCurrency, commonCurrencies, type ExchangeRates } from "./logic";
 
 const CURRENCIES = commonCurrencies();
 
-const btn =
-  "px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed";
-
-const select =
-  "px-2 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
 function Currency() {
-  const [amount, setAmount] = useState<string>("1");
-  const [from, setFrom] = useState<string>("USD");
-  const [to, setTo] = useState<string>("EUR");
+  const [amount, setAmount] = useState("1");
+  const [from, setFrom] = useState("USD");
+  const [to, setTo] = useState("EUR");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<number | null>(null);
-  const [ratesCache, setRatesCache] = useState<Map<string, ExchangeRates>>(
-    () => new Map()
-  );
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [rates, setRates] = useState<Map<string, ExchangeRates>>(() => new Map());
+  /** After the first Convert, changing the base fetches its rates by itself. */
+  const live = useRef(false);
 
-  async function handleConvert() {
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount)) {
-      setError("Please enter a valid number.");
-      return;
-    }
-
+  async function load(base: string) {
+    if (rates.has(base)) return;
     setLoading(true);
     setError(null);
-
     try {
-      let rates = ratesCache.get(from);
-      if (!rates) {
-        rates = await fetchRates(from);
-        setRatesCache((prev) => new Map(prev).set(from, rates!));
-      }
-
-      const converted = convertCurrency(parsedAmount, from, to, rates);
-      setResult(converted);
-      setLastUpdated(rates.lastUpdated);
+      const r = await fetchRates(base);
+      setRates((prev) => new Map(prev).set(base, r));
+      live.current = true;
     } catch (e) {
       setError((e as Error).message);
-      setResult(null);
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSwap() {
-    setFrom(to);
-    setTo(from);
-    setResult(null);
-    setLastUpdated(null);
-  }
+  useEffect(() => {
+    if (live.current) void load(from);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from]);
 
-  const numericAmount = parseFloat(amount);
-  const hasResult = result !== null && !isNaN(numericAmount);
+  const value = parseFloat(amount.replace(/,/g, ""));
+  const current = rates.get(from);
+  const result = current && !Number.isNaN(value) ? convertCurrency(value, from, to, current) : null;
+  const unit = current ? convertCurrency(1, from, to, current) : null;
+  const fmt = (n: number, cur: string) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: cur, maximumFractionDigits: 4 }).format(n);
 
   return (
-    <ToolLayout title="Currency Convert">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400">Amount</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="px-2 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="1"
-            min="0"
-          />
-        </div>
+    <ToolPage scroll>
+      <form
+        className="flex flex-wrap items-end gap-3 shrink-0"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (Number.isNaN(value)) setError("Enter an amount, e.g. 100 or 12.5");
+          else void load(from);
+        }}
+      >
+        <Field label="Amount">
+          <TextInput autoFocus mono inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100" className="w-40 text-right" />
+        </Field>
+        <Field label="From">
+          <Select value={from} onChange={(e) => setFrom(e.target.value)} className="w-28">
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </Select>
+        </Field>
+        <Button icon={ArrowLeftRight} label="Swap currencies" onClick={() => { setFrom(to); setTo(from); }} />
+        <Field label="To">
+          <Select value={to} onChange={(e) => setTo(e.target.value)} className="w-28">
+            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </Select>
+        </Field>
+        {!current && (
+          <Button type="submit" variant="primary" disabled={loading} kbd={loading ? undefined : "↵"}>
+            {loading && <Spinner />}
+            {loading ? "Fetching rates…" : "Convert"}
+          </Button>
+        )}
+        {current && loading && <Spinner />}
+      </form>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400">From</label>
-          <select
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className={select}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+      {error && <Notice>{error}</Notice>}
 
-        <button
-          className={btn}
-          onClick={handleSwap}
-          title="Swap currencies"
-          aria-label="Swap currencies"
-        >
-          ⇄
-        </button>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400">To</label>
-          <select
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className={select}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          className={btn}
-          onClick={handleConvert}
-          disabled={loading}
-        >
-          {loading ? "Loading..." : "Convert"}
-        </button>
-      </div>
-
-      <ErrorBanner message={error} />
-
-      {!hasResult && !loading && !error && (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          Enter an amount and press Convert.
-        </p>
-      )}
-
-      {hasResult && (
-        <div className="flex flex-col gap-1">
-          <p className="text-2xl font-semibold tabular-nums">
-            {numericAmount} {from} = {result} {to}
+      {result !== null && unit !== null ? (
+        <div className="rounded-xl border border-line bg-surface px-6 py-5 max-w-3xl shrink-0 dk-fade-in">
+          <p className="text-base text-fg-muted tabular-nums">{fmt(value, from)} =</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-2xl font-semibold text-fg tabular-nums selectable">{fmt(result, to)}</p>
+            <CopyButton text={String(Number(result.toFixed(4)))} label="Copy amount" />
+          </div>
+          <p className="text-sm text-fg-faint mt-3 tabular-nums">
+            1 {from} = {unit.toLocaleString(undefined, { maximumFractionDigits: 6 })} {to} · rates updated {current?.lastUpdated}
           </p>
-          {lastUpdated && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Last updated: {lastUpdated}
-            </p>
-          )}
         </div>
+      ) : (
+        !error && (
+          <p className="text-base text-fg-faint flex items-center gap-2">
+            <Coins size={15} aria-hidden />
+            {current ? "Enter an amount." : "Press Convert to fetch today's rates (open.er-api.com). After that, results update as you type."}
+          </p>
+        )
       )}
-    </ToolLayout>
+    </ToolPage>
   );
 }
 
@@ -158,6 +105,8 @@ export const tool: ToolDef = {
   id: "currency",
   name: "Currency Convert",
   category: "Network",
+  description: "Convert amounts with today's exchange rates",
+  icon: Coins,
   keywords: ["currency", "convert", "exchange", "rate", "forex", "usd", "eur"],
   online: true,
   component: Currency,

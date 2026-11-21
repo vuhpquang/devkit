@@ -46,8 +46,9 @@ degrades gracefully (inline error on offline/timeout/rate-limit).
 - [ ] **Clipboard smart-detection** — detect clipboard content type, suggest matching tool
 - [ ] **Settings page** — default theme, font size, editor preferences
 - [ ] **Input history** per tool (opt-in, local only)
-- [ ] **Keyboard shortcuts** for common actions within tools
-- [ ] **Favorites / pinned tools** at top of sidebar
+- [x] **Keyboard shortcuts**: ⌘K palette with arrow keys, ⌘D favorite, Enter runs online lookups
+- [x] **Favorites / pinned tools** at top of sidebar (+ recent tools in ⌘K)
+- [x] **UI revamp**: icon-palette tokens, system fonts, CodeMirror editors, live output, home grid, overlay title bar
 - [ ] Auto-update via Tauri updater
 
 ## v3 — Expand the Toolbox
