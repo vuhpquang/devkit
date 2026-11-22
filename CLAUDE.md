@@ -3,6 +3,7 @@
 Offline-first developer utilities (DevToys-style). Tauri 2 shell (`src-tauri/`, Rust) + React/TypeScript
 frontend (`src/`). Public repo `vuhpquang/devkit`, branch `main`. Setup, structure and tool layout: `README.md`;
 roadmap: `PLAN.md`.
+Design system: `DESIGN.md` (look, tokens, components, render recipe, known gaps). Read it before UI work.
 
 ## Commands
 
