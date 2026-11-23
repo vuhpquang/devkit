@@ -19,6 +19,7 @@ import { sendTo, takeHandoff } from "../../app/handoff";
 import { componentName, componentToSvg, DEFAULT_OPTIONS, parseSvg, svgToComponent, type Mode, type Options } from "./logic";
 import { optimizeSvg, savedText } from "./optimize";
 import { inApp, openSvgFile, readDropped, saveTextFile } from "./files";
+import { useToolActive } from "../../lib/toolActive";
 
 const KEY = "devkit.svgReact";
 
@@ -99,6 +100,7 @@ function Preview({ svg, size, onSize }: { svg: string | null; size: PreviewSize;
 }
 
 function SvgReact() {
+  const active = useToolActive();
   const [mode, setMode] = useState<Mode>("react");
   const [input, setInput] = useState("");
   const [opts, setOpts] = useState<Options>(loadOptions);
@@ -137,7 +139,7 @@ function SvgReact() {
 
   // Drag & drop in the app: Tauri hands over paths, not browser File objects.
   useEffect(() => {
-    if (!inApp()) return;
+    if (!inApp() || !active) return;
     let un: (() => void) | undefined;
     let live = true;
     getCurrentWebview()
@@ -158,7 +160,7 @@ function SvgReact() {
       un?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [active]);
 
   const computed = useMemo(() => {
     if (!deferred.trim()) return null;

@@ -4,6 +4,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import type { ToolDef } from "../types";
 import { Button, EmptyState, Notice, Panel, Segmented, TextInput, ToolBar, ToolPage, cx } from "../../lib/ui";
 import { PRESETS, SIZE_MAX, SIZE_MIN, clampSize, fileName, isImageUrl, isPng, normalizeHex, toPickerValue } from "./logic";
+import { useToolActive } from "../../lib/toolActive";
 
 type Bg = "checker" | "light" | "dark";
 
@@ -39,6 +40,7 @@ function samplePng(): string | null {
 }
 
 function PngTint() {
+  const active = useToolActive();
   const [src, setSrc] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [tint, setTint] = useState("#eb2f96");
@@ -96,7 +98,7 @@ function PngTint() {
 
   // In the app, files dropped on the window arrive as Tauri events (the webview never sees them).
   useEffect(() => {
-    if (!inApp()) return;
+    if (!inApp() || !active) return;
     let unlisten: (() => void) | undefined;
     let cancelled = false;
     import("@tauri-apps/api/webview")
@@ -119,10 +121,11 @@ function PngTint() {
       cancelled = true;
       unlisten?.();
     };
-  }, [loadPath]);
+  }, [loadPath, active]);
 
   // Paste an image (e.g. a screenshot or a copied PNG).
   useEffect(() => {
+    if (!active) return;
     const onPaste = (e: ClipboardEvent) => {
       const item = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === "file" && i.type.startsWith("image/"));
       const file = item?.getAsFile();
@@ -132,7 +135,7 @@ function PngTint() {
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [showBlob]);
+  }, [showBlob, active]);
 
   // Browser fallback for drag and drop.
   const onDrop = (e: DragEvent) => {

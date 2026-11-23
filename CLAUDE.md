@@ -45,6 +45,10 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   `jsoneditor.css`; `diff.ts` = structural diff, change list, split geometry). JSON Diff reproduces the owner's
   offline `jsoneditor.html` compare view. The old JSON Editor tool was merged into them; `TOOL_ALIASES` in
   `registry.ts` keeps its id (`json-editor` → `json-format`) working for favourites, recents and the last tool.
+- Keep-alive: the shell keeps the last `KEEP_ALIVE` (6) opened tools mounted, the others `hidden` + `inert`, so
+  input survives switching (`useKeepAlive` in `App.tsx`). A hidden tool must not react to window-wide events or keep
+  polling: gate paste listeners, Tauri `onDragDropEvent` and auto-refresh intervals on `useToolActive()`
+  (`src/lib/toolActive.ts`); Image Converter/Resize, PNG Tint, SVG ↔ React, Port Inspector and GitLab do.
 - Tool → tool hand-off: `sendTo(id, payload)` / `takeHandoff(id)` (`src/app/handoff.ts`); the shell opens and
   remounts the target. SVG ↔ React → Image Converter → Image Resize use it.
 - HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +

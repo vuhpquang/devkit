@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
 import { ThemeProvider } from "./app/theme";
-import { PrefsProvider, usePrefs } from "./app/prefs";
+import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
+import { ToolActiveContext } from "./lib/toolActive";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
@@ -115,6 +116,21 @@ function useAutoHide(enabled: boolean) {
   return { revealed, panel, show: () => setRevealed(true), hideNow: () => setRevealed(false) };
 }
 
+/** How many recently used tools stay mounted (hidden) so their input survives switching. */
+export const KEEP_ALIVE = 6;
+
+/** Recently opened tool ids, newest first, at most KEEP_ALIVE; the open tool is always in it. */
+function useKeepAlive(activeId: string | null): string[] {
+  const [alive, setAlive] = useState<string[]>(() => (activeId ? [activeId] : []));
+  if (activeId && alive[0] !== activeId) {
+    // Updated during render (not in an effect) so the open tool is mounted in the same pass.
+    const next = pushRecent(alive, activeId, KEEP_ALIVE);
+    setAlive(next);
+    return next;
+  }
+  return alive;
+}
+
 function Shell() {
   const { activeId, setActiveId } = useActiveTool();
   const { markUsed, toggleFavorite } = usePrefs();
@@ -127,7 +143,7 @@ function Shell() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [settingsPane, setSettingsPane] = useState<PaneId | null>(null);
   const active = activeId ? getToolById(activeId) : undefined;
-  const Active = active?.component;
+  const alive = useKeepAlive(active?.id ?? null);
   const mode = settings.sidebar;
   const auto = useAutoHide(mode === "autohide");
 
@@ -182,12 +198,12 @@ function Shell() {
   useEffect(() => onMenu(runMenu), [runMenu]);
 
   // Another tool handed over a result: open the target (remounted, so it reads the payload on mount).
-  const [handoffs, setHandoffs] = useState(0);
+  const [handoffs, setHandoffs] = useState<Record<string, number>>({});
   useEffect(() => {
     const onOpen = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
       if (!getToolById(id)) return;
-      setHandoffs((n) => n + 1);
+      setHandoffs((h) => ({ ...h, [id]: (h[id] ?? 0) + 1 }));
       select(id);
     };
     window.addEventListener(OPEN_TOOL_EVENT, onOpen);
@@ -304,7 +320,20 @@ function Shell() {
           sidebarInFlow={mode === "shown"}
         />
         <div className="flex-1 min-h-0">
-          {Active ? <Active key={`${active.id}:${handoffs}`} /> : <Home onSelect={select} onSearch={() => setPaletteOpen(true)} />}
+          {alive.map((id) => {
+            const tool = getToolById(id);
+            if (!tool) return null;
+            const Tool = tool.component;
+            const on = id === active?.id;
+            return (
+              <div key={`${id}:${handoffs[id] ?? 0}`} className="h-full" hidden={!on} inert={!on}>
+                <ToolActiveContext.Provider value={on}>
+                  <Tool />
+                </ToolActiveContext.Provider>
+              </div>
+            );
+          })}
+          {!active && <Home onSelect={select} onSearch={() => setPaletteOpen(true)} />}
         </div>
       </main>
 

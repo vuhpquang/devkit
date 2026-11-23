@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { isTauri } from "@tauri-apps/api/core";
+import { useToolActive } from "../../lib/toolActive";
 
 /**
  * Loading and saving images for Image Converter and Image Resize.
@@ -184,6 +185,7 @@ export function useBlobUrl(bytes: Uint8Array | null | undefined, mime: string): 
  * sees them); in a browser, spread `dropProps` on the drop zone. Paste (⌘V) of an image works in both.
  */
 export function useImageInput(onFiles: (files: ImageFile[]) => void, onError: (message: string) => void) {
+  const active = useToolActive();
   const [dragging, setDragging] = useState(false);
   const handler = useRef(onFiles);
   handler.current = onFiles;
@@ -201,7 +203,7 @@ export function useImageInput(onFiles: (files: ImageFile[]) => void, onError: (m
   }, []);
 
   useEffect(() => {
-    if (!inApp()) return;
+    if (!inApp() || !active) return;
     let unlisten: (() => void) | undefined;
     let cancelled = false;
     import("@tauri-apps/api/webview")
@@ -222,9 +224,10 @@ export function useImageInput(onFiles: (files: ImageFile[]) => void, onError: (m
       cancelled = true;
       unlisten?.();
     };
-  }, [acceptPaths]);
+  }, [acceptPaths, active]);
 
   useEffect(() => {
+    if (!active) return;
     const onPaste = async (e: ClipboardEvent) => {
       const files = [...(e.clipboardData?.items ?? [])]
         .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
@@ -236,7 +239,7 @@ export function useImageInput(onFiles: (files: ImageFile[]) => void, onError: (m
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, []);
+  }, [active]);
 
   const dropProps = {
     onDragOver: (e: DragEvent) => {

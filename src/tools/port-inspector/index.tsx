@@ -18,6 +18,7 @@ import {
 } from "../../lib/ui";
 import { killProcess, listPorts, NotInApp } from "../../lib/system";
 import { COMMON_PORTS, filterRows, parseLsof, scopeLabel, stillListening, type PortRow, type ProtoFilter } from "./logic";
+import { useToolActive } from "../../lib/toolActive";
 
 const rowKey = (r: PortRow) => `${r.pid}/${r.protocol}/${r.port}`;
 
@@ -31,6 +32,7 @@ function PortInspector() {
   const [query, setQuery] = useState("");
   const [proto, setProto] = useState<ProtoFilter>("TCP");
   const [auto, setAuto] = useState(false);
+  const active = useToolActive();
   const [states, setStates] = useState<Record<string, RowState>>({});
   const live = useRef(true);
 
@@ -57,11 +59,12 @@ function PortInspector() {
     };
   }, [refresh]);
 
+  // Polls only while on screen (hidden tools stay mounted, see lib/toolActive).
   useEffect(() => {
-    if (!auto) return;
+    if (!auto || !active) return;
     const id = setInterval(() => void refresh(), 3000);
     return () => clearInterval(id);
-  }, [auto, refresh]);
+  }, [auto, active, refresh]);
 
   const setState = (key: string, s: RowState | null) =>
     setStates((prev) => {

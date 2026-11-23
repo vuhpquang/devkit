@@ -6,6 +6,7 @@ import { createClient, isConfigured, normalizeBase, parseSettings, type GitLabSe
 import { SETTINGS_KEY, browserFetch, loadCache } from "./parts";
 import { Pipelines } from "./Pipelines";
 import { MergeRequests } from "./MergeRequests";
+import { useToolActive } from "../../lib/toolActive";
 
 function useGitLabSettings() {
   const [s, setS] = useState<GitLabSettings>(() => {
@@ -89,11 +90,13 @@ function GitLab() {
     setS((prev) => (prev.tab === "pipelines" ? { ...prev, pipelines: { ...prev.pipelines, ...p } } : { ...prev, mrs: { ...prev.mrs, ...p } }));
 
   // Auto refresh the open tab at its own rate.
+  // Only while the tool is on screen (hidden tools stay mounted, see lib/toolActive).
+  const active = useToolActive();
   useEffect(() => {
-    if (!win.auto || !configured) return;
+    if (!win.auto || !configured || !active) return;
     const id = setInterval(() => load(s.tab), win.auto * 1000);
     return () => clearInterval(id);
-  }, [win.auto, s.tab, configured, load]);
+  }, [win.auto, s.tab, configured, active, load]);
   const baseInvalid = s.base.trim() !== "" && !normalizeBase(s.base);
 
   return (
