@@ -71,7 +71,9 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   Home grid, ⌘K palette (arrows; Favorites, then Recent, then the rest; hidden tools still found), ⌘D toggles
   favorite. Favorites (`devkit.favorites`, ordered): hover star on every sidebar row and Home card, native right-click
   menu (`toolMenu.ts`, Tauri `Menu.popup`; the browser keeps its own menu), reorder in the sidebar by dragging
-  (pointer events, not HTML5 DnD) or ⌥↑ / ⌥↓ / Move Up·Down; `moveIdBefore` in `prefs.tsx` is the pure model.
+  (pointer events, not HTML5 DnD) or ⌥↑ / ⌥↓ / Move Up·Down; drag any category row onto Favorites (or the drop zone
+  shown while dragging with no favorites) to add it there (`useFavoriteDrag` in `Sidebar.tsx`, ghost + autoscroll);
+  `moveIdBefore` in `prefs.tsx` is the pure model.
   ⌘0 = All tools, ⌘1…⌘9 = the first nine favorites; pressing ⌘ shows the numbers at once (hidden again by any other
   chord) on "All tools", the sidebar favorites and Home cards. Ctrl+Tab / Ctrl+Shift+Tab cycle the favorites like
   browser tabs; ⌘[ / ⌘] and the ‹ › buttons next to the sidebar toggle go back / forward through opened tools

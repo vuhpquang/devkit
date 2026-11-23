@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Globe, LayoutGrid, Search, Settings, Star, X } from "lucide-react";
 import { tools, CATEGORY_ORDER } from "../tools/registry";
 import type { ToolDef } from "../tools/types";
@@ -105,83 +105,139 @@ function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onP
   );
 }
 
-/** Pixels the pointer must travel before a press on a favorite becomes a drag. */
+/** Pixels the pointer must travel before a press on a row becomes a drag. */
 const DRAG_THRESHOLD = 4;
+/** Distance from the list's top / bottom edge where a drag scrolls it, and the speed (px per frame). */
+const AUTOSCROLL_EDGE = 36;
+const AUTOSCROLL_SPEED = 8;
 
-/** The Favorites section: drag a row (or ⌥↑ / ⌥↓, or the context menu) to reorder. */
+interface DragState {
+  id: string;
+  /** Pointer position, for the ghost. */
+  x: number;
+  y: number;
+  /** Insertion index in the Favorites list (0…n), or null while the pointer isn't over it. */
+  over: number | null;
+}
+
+/**
+ * Dragging rows into and within the Favorites list. A favorite dragged inside the list reorders it; any other
+ * row dropped on the list (or on the empty drop zone) becomes a favorite at that spot. Pointer events, not HTML5
+ * drag and drop (the Tauri webview owns native drops for files).
+ */
+function useFavoriteDrag(list: ToolDef[], navRef: React.RefObject<HTMLElement | null>) {
+  const { favorites, toggleFavorite, moveFavorite } = usePrefs();
+  const latest = useRef({ favorites, list });
+  latest.current = { favorites, list };
+  const zoneRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const pointerY = useRef(0);
+  const justDragged = useRef(false);
+
+  /** Insertion index for a pointer at (x, y), or null when it isn't over the Favorites zone (heading included). */
+  const overAt = (x: number, y: number): number | null => {
+    const zone = zoneRef.current;
+    if (!zone) return null;
+    const b = zone.getBoundingClientRect();
+    if (x < b.left || x > b.right || y < b.top - 24 || y > b.bottom + 12) return null;
+    const rows = Array.from(zone.querySelectorAll("[data-fav-row]"));
+    return rows.filter((r) => {
+      const rb = r.getBoundingClientRect();
+      return rb.top + rb.height / 2 < y;
+    }).length;
+  };
+
+  // Near the top or bottom of the list, keep scrolling while the pointer rests there.
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    let frame = 0;
+    const tick = () => {
+      const nav = navRef.current;
+      if (nav) {
+        const b = nav.getBoundingClientRect();
+        if (pointerY.current < b.top + AUTOSCROLL_EDGE) nav.scrollTop -= AUTOSCROLL_SPEED;
+        else if (pointerY.current > b.bottom - AUTOSCROLL_EDGE) nav.scrollTop += AUTOSCROLL_SPEED;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [dragging, navRef]);
+
+  const start = (e: React.PointerEvent, id: string) => {
+    if (e.button !== 0) return;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    let moved = false;
+    const onMove = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < DRAG_THRESHOLD) return;
+      moved = true;
+      pointerY.current = ev.clientY;
+      setDrag({ id, x: ev.clientX, y: ev.clientY, over: overAt(ev.clientX, ev.clientY) });
+    };
+    const finish = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      setDrag(null);
+      if (!moved) return;
+      // The click that ends a drag must not open the tool.
+      justDragged.current = true;
+      setTimeout(() => (justDragged.current = false), 0);
+      if (ev.type === "pointercancel") return;
+      const over = overAt(ev.clientX, ev.clientY);
+      if (over === null) return;
+      const { favorites: favs, list: rows } = latest.current;
+      if (!favs.includes(id)) toggleFavorite(id);
+      moveFavorite(id, rows[over]?.id ?? null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
+
+  const suppressClick = (e: React.MouseEvent) => {
+    if (justDragged.current) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
+  return { drag, start, zoneRef, suppressClick };
+}
+
+/** The Favorites rows: drag (or ⌥↑ / ⌥↓, or the context menu) to reorder. */
 function FavoritesList({
   list,
   activeId,
   onSelect,
   cmdHeld,
+  drag,
+  onPress,
+  zoneRef,
 }: {
   list: ToolDef[];
   activeId: string | null;
   onSelect: (id: string) => void;
   cmdHeld: boolean;
+  drag: DragState | null;
+  onPress: (e: React.PointerEvent, id: string) => void;
+  zoneRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const { moveFavorite } = usePrefs();
-  const listRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<{ id: string; over: number } | null>(null);
-  const justDragged = useRef(false);
-
   const move = (index: number, delta: -1 | 1) => {
     const id = list[index].id;
     if (delta === -1 && index > 0) moveFavorite(id, list[index - 1].id);
     if (delta === 1 && index < list.length - 1) moveFavorite(id, list[index + 2]?.id ?? null);
   };
-
-  /** Insertion index (0…n) for a pointer at `y`: the number of rows whose middle is above it. */
-  const indexAt = (y: number) => {
-    const rows = listRef.current ? Array.from(listRef.current.children) : [];
-    return rows.filter((r) => {
-      const b = r.getBoundingClientRect();
-      return b.top + b.height / 2 < y;
-    }).length;
-  };
-
-  const startPress = (e: React.PointerEvent, id: string) => {
-    if (e.button !== 0) return;
-    const startY = e.clientY;
-    let dragging = false;
-    const onMovePtr = (ev: PointerEvent) => {
-      if (!dragging && Math.abs(ev.clientY - startY) < DRAG_THRESHOLD) return;
-      dragging = true;
-      setDrag({ id, over: indexAt(ev.clientY) });
-    };
-    const finish = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", onMovePtr);
-      window.removeEventListener("pointerup", finish);
-      window.removeEventListener("pointercancel", finish);
-      setDrag(null);
-      if (!dragging) return;
-      justDragged.current = true;
-      setTimeout(() => (justDragged.current = false), 0);
-      if (ev.type === "pointercancel") return;
-      const over = indexAt(ev.clientY);
-      moveFavorite(id, list[over]?.id ?? null);
-    };
-    window.addEventListener("pointermove", onMovePtr);
-    window.addEventListener("pointerup", finish);
-    window.addEventListener("pointercancel", finish);
-  };
-
+  const over = drag?.over ?? null;
   return (
-    <div
-      ref={listRef}
-      className={cx("flex flex-col gap-px select-none", drag && "cursor-grabbing")}
-      onClickCapture={(e) => {
-        // The click that ends a drag must not open the tool.
-        if (justDragged.current) {
-          e.stopPropagation();
-          e.preventDefault();
-        }
-      }}
-    >
+    <div ref={zoneRef} className="flex flex-col gap-px">
       {list.map((t, i) => (
-        <div key={t.id} className="relative">
-          {drag && drag.over === i && <DropLine edge="top" />}
-          {drag && drag.over === list.length && i === list.length - 1 && <DropLine edge="bottom" />}
+        <div key={t.id} data-fav-row className="relative">
+          {over === i && <DropLine edge="top" />}
+          {over === list.length && i === list.length - 1 && <DropLine edge="bottom" />}
           <Item
             tool={t}
             active={t.id === activeId}
@@ -189,12 +245,42 @@ function FavoritesList({
             favoritesPosition={{ index: i, count: list.length }}
             onMove={(delta) => move(i, delta)}
             dragging={drag?.id === t.id}
-            onPointerDown={(e) => startPress(e, t.id)}
+            onPointerDown={(e) => onPress(e, t.id)}
             shortcut={i < FAVORITE_SHORTCUTS ? i + 1 : undefined}
             showShortcut={cmdHeld && !drag}
           />
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Shown in place of the Favorites list while a tool is dragged and there are no favorites yet. */
+function EmptyDropZone({ active, zoneRef }: { active: boolean; zoneRef: React.RefObject<HTMLDivElement | null> }) {
+  return (
+    <div
+      ref={zoneRef}
+      className={cx(
+        "h-9 mx-0.5 rounded-md border border-dashed grid place-items-center text-sm transition-colors duration-75",
+        active ? "border-accent bg-accent-soft text-fg" : "border-line-strong text-fg-faint",
+      )}
+    >
+      Drop to add to Favorites
+    </div>
+  );
+}
+
+/** The row under the pointer while dragging. */
+function DragGhost({ tool, x, y }: { tool: ToolDef; x: number; y: number }) {
+  const Icon = tool.icon;
+  return (
+    <div
+      aria-hidden
+      style={{ transform: `translate(${x + 12}px, ${y + 10}px)` }}
+      className="fixed left-0 top-0 z-50 pointer-events-none flex items-center gap-2 h-7 px-2.5 rounded-md bg-surface border border-line shadow-pop text-sm text-fg"
+    >
+      <Icon size={14} className="text-fg-muted" />
+      {tool.name}
     </div>
   );
 }
@@ -222,6 +308,9 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
   const visible = tools.filter((t) => isToolVisible(t, settings));
   const favTools = useFavoriteTools();
   const cmdHeld = useCmdHeld();
+  const navRef = useRef<HTMLElement>(null);
+  const { drag, start, zoneRef, suppressClick } = useFavoriteDrag(favTools, navRef);
+  const dragTool = drag ? tools.find((t) => t.id === drag.id) : undefined;
   const searchRef = useRef<HTMLInputElement>(null);
   const searching = query.trim().length > 0;
   // Search reaches hidden tools too; switched-off online tools stay out.
@@ -275,7 +364,16 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
         </div>
       </div>
 
-      <nav aria-label="Tools" className="flex-1 overflow-y-auto px-2 pb-2">
+      <nav
+        ref={navRef}
+        aria-label="Tools"
+        className={cx(
+          "flex-1 overflow-y-auto px-2 pb-2",
+          // While dragging, rows don't react to hover (the window listeners still get the pointer).
+          drag && "select-none cursor-grabbing [&_button]:pointer-events-none",
+        )}
+        onClickCapture={suppressClick}
+      >
         {searching ? (
           results.length > 0 ? (
             <Section title={`${results.length} ${results.length === 1 ? "result" : "results"}`}>
@@ -309,10 +407,24 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
                 )}
               </button>
             </div>
-            {favTools.length > 0 && (
+            {favTools.length > 0 ? (
               <Section title="Favorites" raw>
-                <FavoritesList list={favTools} activeId={activeId} onSelect={onSelect} cmdHeld={cmdHeld} />
+                <FavoritesList
+                  list={favTools}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  cmdHeld={cmdHeld}
+                  drag={drag}
+                  onPress={start}
+                  zoneRef={zoneRef}
+                />
               </Section>
+            ) : (
+              drag && (
+                <Section title="Favorites" raw>
+                  <EmptyDropZone active={drag.over !== null} zoneRef={zoneRef} />
+                </Section>
+              )
             )}
             {CATEGORY_ORDER.map((cat) => {
               const items = visible.filter((t) => t.category === cat);
@@ -320,7 +432,14 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
               return (
                 <Section key={cat} title={cat}>
                   {items.map((t) => (
-                    <Item key={t.id} tool={t} active={t.id === activeId} onSelect={onSelect} />
+                    <Item
+                      key={t.id}
+                      tool={t}
+                      active={t.id === activeId}
+                      onSelect={onSelect}
+                      dragging={drag?.id === t.id}
+                      onPointerDown={(e) => start(e, t.id)}
+                    />
                   ))}
                 </Section>
               );
@@ -344,6 +463,7 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
         <ThemeSwitcher />
         <Button variant="ghost" size="sm" icon={Settings} label="Settings (⌘,)" onClick={onSettings} />
       </div>
+      {drag && dragTool && <DragGhost tool={dragTool} x={drag.x} y={drag.y} />}
     </aside>
   );
 }
