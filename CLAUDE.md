@@ -83,7 +83,7 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   types, bits), `Switch`, `Button`, `EmptyState`, `Notice`. Don't hand-roll a variant of one of these in a tool.
   Local tools update as you type; only online tools have a submit button.
 - `ToolDef` needs `description` and a lucide `icon`; they show in the header, home grid, sidebar and ⌘K.
-- Shell: `src/app/` — Sidebar (search, Favorites, categories; modes Shown / Hidden / Auto-hide, toggle ⌃⌘S),
+- Shell: `src/app/` — Sidebar (search, Favorites, categories; modes Shown / Hidden / Auto-hide, toggle ⌘E, ⌃⌘S kept as an alias the page always handles),
   Home grid, ⌘K palette (arrows; Favorites, then Recent, then the rest; hidden tools still found), ⌘D toggles
   favorite. Favorites (`devkit.favorites`, ordered): hover star on every sidebar row and Home card, native right-click
   menu (`toolMenu.ts`, Tauri `Menu.popup`; the browser keeps its own menu), reorder in the sidebar by dragging
@@ -109,8 +109,8 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   Depot installs, so the button opens the release page. What's New (`WhatsNew.tsx`) opens once after the version
   goes up, silent on first run (`devkit.whatsNew.lastVersion`).
 - Native menu: `src-tauri/src/menu.rs` (About, Check for Updates…, Settings… ⌘,, Find a Tool ⌘K, Toggle Sidebar
-  ⌃⌘S, What's New, Report an Issue; Edit menu kept so ⌘C/⌘V work in the webview). Items reach the page as a `menu`
-  event (`src/app/menuEvents.ts`); inside the app the page doesn't also handle ⌘K / ⌘, / ⌃⌘S.
+  ⌘E, Keyboard Shortcuts ⌘/, What's New, Report an Issue; Edit menu kept so ⌘C/⌘V work in the webview). Items reach the page as a `menu`
+  event (`src/app/menuEvents.ts`); inside the app the page doesn't also handle ⌘K / ⌘, / ⌘E / ⌘/.
 - localStorage keys (never rename): `devkit.theme`, `devkit.lastTool`, `devkit.favorites`, `devkit.recent`,
   `devkit.settings`, `devkit.whatsNew.lastVersion`, `devkit.jsonEditor.split`, `devkit.gitlab` (token stays on
   this Mac).

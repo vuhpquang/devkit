@@ -12,7 +12,7 @@ pub const ITEMS: &[(&str, &str, Option<&str>)] = &[
     ("check-updates", "Check for Updates…", None),
     ("settings", "Settings…", Some("CmdOrCtrl+,")),
     ("find-tool", "Find a Tool…", Some("CmdOrCtrl+K")),
-    ("toggle-sidebar", "Toggle Sidebar", Some("Ctrl+Cmd+S")),
+    ("toggle-sidebar", "Toggle Sidebar", Some("CmdOrCtrl+E")),
     ("whats-new", "What's New in DevKit", None),
     ("report-issue", "Report an Issue…", None),
     ("shortcuts", "Keyboard Shortcuts", Some("CmdOrCtrl+/")),

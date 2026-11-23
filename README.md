@@ -115,7 +115,7 @@ ping & traceroute, speed test).
 - **⌘[ / ⌘]** back and forward through the tools you opened; switching keeps what you typed in the last six.
 - **⌘/** lists every shortcut.
 - **⌘,** Settings: hide tools you don't use, switch online tools off, editor font size, sidebar shown / hidden /
-  auto-hide (**⌃⌘S** toggles it).
+  auto-hide (**⌘E** toggles it; ⌃⌘S also works).
 - Local tools update as you type; **Sample** loads an example. Online tools run on **Enter**.
 - Light, dark or follow the system: the switch at the bottom of the sidebar.
 

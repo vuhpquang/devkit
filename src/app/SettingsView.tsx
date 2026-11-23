@@ -82,7 +82,7 @@ function GeneralPane() {
         footer={
           settings.sidebar === "autohide"
             ? "Move the pointer to the left edge of the window to bring the sidebar in."
-            : "⌃⌘S or the sidebar button shows and hides it."
+            : "⌘E or the sidebar button shows and hides it."
         }
       >
         <Row label="Sidebar">

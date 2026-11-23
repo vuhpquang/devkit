@@ -12,7 +12,7 @@ export type MenuId =
   | "report-issue"
   | "shortcuts";
 
-/** True inside the app, where the menu owns ⌘K, ⌘, and ⌃⌘S (so the page must not handle them too). */
+/** True inside the app, where the menu owns ⌘K, ⌘,, ⌘E and ⌘/ (so the page must not handle them too). */
 export const inApp = (): boolean => {
   try {
     return isTauri();

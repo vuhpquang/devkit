@@ -14,7 +14,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: [["⌘", "1"], ["⌘", "9"]], label: "Open favorite 1 to 9", range: true },
       { keys: [["⌃", "Tab"], ["⌃", "⇧", "Tab"]], label: "Cycle favorites" },
       { keys: [["⌘", "["], ["⌘", "]"]], label: "Back / forward" },
-      { keys: [["⌃", "⌘", "S"]], label: "Show or hide the sidebar" },
+      { keys: [["⌘", "E"], ["⌃", "⌘", "S"]], label: "Toggle sidebar" },
     ],
   },
   {
@@ -42,6 +42,15 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
 ];
+
+/**
+ * ⌘E collapses / expands the sidebar (the View menu's accelerator in the app). ⌃⌘S, the older key, still works
+ * and is always handled by the page. By physical key, so any layout works.
+ */
+export const isSidebarKey = (e: Pick<KeyboardEvent, "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">) =>
+  e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.code === "KeyE";
+export const isSidebarAliasKey = (e: Pick<KeyboardEvent, "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">) =>
+  e.metaKey && e.ctrlKey && !e.altKey && !e.shiftKey && e.code === "KeyS";
 
 /** ⌘/ (by physical key), otherwise false. */
 export const isShortcutsKey = (e: Pick<KeyboardEvent, "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">) =>

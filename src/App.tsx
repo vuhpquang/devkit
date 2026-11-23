@@ -4,7 +4,7 @@ import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
 import { ToolActiveContext, ToolIdContext } from "./lib/toolActive";
 import { historyKey, startHistory, step, visit } from "./app/history";
-import { isShortcutsKey } from "./app/shortcuts";
+import { isShortcutsKey, isSidebarAliasKey, isSidebarKey } from "./app/shortcuts";
 import { useLauncher, type LauncherOpen } from "./app/launcher";
 import { ShortcutsSheet } from "./app/ShortcutsSheet";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
@@ -258,16 +258,15 @@ function Shell() {
     return () => window.removeEventListener(OPEN_TOOL_EVENT, onOpen);
   }, [select]);
 
-  // Keyboard. In the app the native menu owns ⌘K, ⌘, and ⌃⌘S; in a plain browser the page handles them.
+  // Keyboard. In the app the native menu owns ⌘K, ⌘, ⌘E and ⌘/; in a plain browser the page handles them.
   useEffect(() => {
     const menuOwnsKeys = inApp();
     const onKey = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (e.metaKey && e.ctrlKey && key === "s") {
-        if (!menuOwnsKeys) {
-          e.preventDefault();
-          toggleSidebar();
-        }
+      // ⌘E collapses / expands the sidebar; ⌃⌘S (the older key) is no menu accelerator, so the page always takes it.
+      if (isSidebarAliasKey(e) || (isSidebarKey(e) && !menuOwnsKeys)) {
+        e.preventDefault();
+        toggleSidebar();
         return;
       }
       // ⌘0 = All tools, ⌘1…⌘9 = favorites in sidebar order.
@@ -371,7 +370,7 @@ function Shell() {
         <Button
           variant="ghost"
           icon={PanelLeft}
-          label={mode === "shown" ? "Hide sidebar (⌃⌘S)" : "Show sidebar (⌃⌘S)"}
+          label={mode === "shown" ? "Hide sidebar (⌘E)" : "Show sidebar (⌘E)"}
           onClick={toggleSidebar}
           onMouseEnter={mode === "autohide" ? auto.show : undefined}
         />

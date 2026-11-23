@@ -80,7 +80,7 @@ export function isToolSearchable(tool: ToolDef, s: Settings): boolean {
   return !(tool.online && !s.showOnlineTools);
 }
 
-/** Toggle button / ⌃⌘S: a visible sidebar collapses, a collapsed or auto-hiding one gets pinned. */
+/** Toggle button / ⌘E: a visible sidebar collapses, a collapsed or auto-hiding one gets pinned. */
 export function toggledSidebar(mode: SidebarMode): SidebarMode {
   return mode === "shown" ? "hidden" : "shown";
 }
