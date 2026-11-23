@@ -15,6 +15,7 @@ pub const ITEMS: &[(&str, &str, Option<&str>)] = &[
     ("toggle-sidebar", "Toggle Sidebar", Some("Ctrl+Cmd+S")),
     ("whats-new", "What's New in DevKit", None),
     ("report-issue", "Report an Issue…", None),
+    ("shortcuts", "Keyboard Shortcuts", Some("CmdOrCtrl+/")),
 ];
 
 fn item<R: Runtime>(app: &AppHandle<R>, id: &str) -> tauri::Result<MenuItem<R>> {
@@ -79,7 +80,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &PredefinedMenuItem::close_window(app, None)?,
         ],
     )?;
-    let help = Submenu::with_items(app, "Help", true, &[&item(app, "whats-new")?, &item(app, "report-issue")?])?;
+    let help = Submenu::with_items(app, "Help", true, &[&item(app, "shortcuts")?, &sep()?, &item(app, "whats-new")?, &item(app, "report-issue")?])?;
     Menu::with_items(app, &[&app_menu, &edit, &view, &window, &help])
 }
 

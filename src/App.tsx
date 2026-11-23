@@ -4,6 +4,8 @@ import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
 import { ToolActiveContext } from "./lib/toolActive";
 import { historyKey, startHistory, step, visit } from "./app/history";
+import { isShortcutsKey } from "./app/shortcuts";
+import { ShortcutsSheet } from "./app/ShortcutsSheet";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
@@ -142,6 +144,7 @@ function Shell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsPane, setSettingsPane] = useState<PaneId | null>(null);
   const active = activeId ? getToolById(activeId) : undefined;
   const alive = useKeepAlive(active?.id ?? null);
@@ -210,6 +213,9 @@ function Shell() {
         case "report-issue":
           void openExternal(APP.newIssueURL);
           break;
+        case "shortcuts":
+          setShortcutsOpen((v) => !v);
+          break;
       }
     },
     [check, openSettings, toggleSidebar],
@@ -250,6 +256,14 @@ function Shell() {
           e.preventDefault();
           setPaletteOpen(false);
           select(target);
+        }
+        return;
+      }
+      if (isShortcutsKey(e)) {
+        // In the app the Help menu's ⌘/ owns it; in a browser, unless an editor used it (CodeMirror comments).
+        if (!menuOwnsKeys && !e.defaultPrevented) {
+          e.preventDefault();
+          setShortcutsOpen((v) => !v);
         }
         return;
       }
@@ -383,6 +397,7 @@ function Shell() {
         onClose={() => setSettingsPane(null)}
         onWhatsNew={() => setWhatsNewOpen(true)}
       />
+      <ShortcutsSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSelect={select} />
     </div>
   );

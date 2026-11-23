@@ -76,7 +76,9 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   chord) on "All tools", the sidebar favorites and Home cards. Ctrl+Tab / Ctrl+Shift+Tab cycle the favorites like
   browser tabs; ⌘[ / ⌘] and the ‹ › buttons next to the sidebar toggle go back / forward through opened tools
   (`history.ts`, 50 entries). These navigation keys use a capture-phase listener so the focused editor can't take
-  them (CodeMirror would indent on ⌘[ / ⌘]; Tab / Shift+Tab still indent). `favorites.ts`: `useFavoriteTools` (the one ordered
+  them (CodeMirror would indent on ⌘[ / ⌘]; Tab / Shift+Tab still indent).
+  ⌘/ (Help → Keyboard Shortcuts) opens `ShortcutsSheet`; its list is `SHORTCUT_GROUPS` in `shortcuts.ts` — add a row there
+  whenever a shortcut is added. `favorites.ts`: `useFavoriteTools` (the one ordered
   list all of these use), `useCmdHeld`, `numberShortcut`, `cycleFavorite`, `tabCycleDirection`.
   macOS has a case-insensitive disk: `favorites.ts`'s tests are `favoriteShortcuts.test.tsx`, not `favorites.test.tsx`
   (that name is `Favorites.test.tsx`).

@@ -9,7 +9,8 @@ export type MenuId =
   | "find-tool"
   | "toggle-sidebar"
   | "whats-new"
-  | "report-issue";
+  | "report-issue"
+  | "shortcuts";
 
 /** True inside the app, where the menu owns ⌘K, ⌘, and ⌃⌘S (so the page must not handle them too). */
 export const inApp = (): boolean => {
