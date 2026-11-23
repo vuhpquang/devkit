@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { tool } from "./index";
+import { parseDays, tool } from "./index";
 
 const BASE = "https://gitlab.example.com";
 
@@ -41,6 +41,31 @@ describe("GitLab tool", () => {
     expect(screen.getByLabelText("Auto refresh")).toHaveValue("60");
     const saved = JSON.parse(localStorage.getItem("devkit.gitlab")!);
     expect([saved.pipelines.days, saved.pipelines.auto, saved.mrs.days, saved.mrs.auto]).toEqual([7, 60, 30, 0]);
+  });
+
+  it("lets the Days field be cleared and retyped", async () => {
+    const C = tool.component;
+    render(<C />);
+    const days = screen.getByRole("spinbutton", { name: "Days" });
+    await userEvent.clear(days);
+    expect(days).toHaveValue(null);
+    await userEvent.type(days, "7");
+    expect(days).toHaveValue(7);
+    expect(JSON.parse(localStorage.getItem("devkit.gitlab")!).pipelines.days).toBe(7);
+    // "700" is out of range: the last valid value (70) stays saved, and leaving the field shows it again.
+    await userEvent.type(days, "00");
+    expect(days).toHaveValue(700);
+    expect(JSON.parse(localStorage.getItem("devkit.gitlab")!).pipelines.days).toBe(70);
+    await userEvent.tab();
+    expect(days).toHaveValue(70);
+  });
+
+  it("parses Days as a whole number 1–365", () => {
+    expect(parseDays("10")).toBe(10);
+    expect(parseDays("")).toBeNull();
+    expect(parseDays("0")).toBeNull();
+    expect(parseDays("366")).toBeNull();
+    expect(parseDays("1.5")).toBeNull();
   });
 
   it("loads merge requests with the token as a query parameter", async () => {

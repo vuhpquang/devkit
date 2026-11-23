@@ -25,6 +25,38 @@ function useGitLabSettings() {
   return [s, setS] as const;
 }
 
+/** Parses the Days field: a whole number 1–365, otherwise null (the field keeps what was typed). */
+export function parseDays(text: string): number | null {
+  if (!/^\s*\d+\s*$/.test(text)) return null;
+  const n = Number(text);
+  return n >= 1 && n <= 365 ? n : null;
+}
+
+/**
+ * Keeps the typed text while editing (clearing the field no longer snaps it to 30), saves only valid values, and
+ * shows the saved value again when focus leaves.
+ */
+function DaysInput({ value, onChange }: { value: number; onChange: (days: number) => void }) {
+  const [text, setText] = useState(String(value));
+  const invalid = parseDays(text) === null;
+  return (
+    <TextInput
+      type="number"
+      min={1}
+      max={365}
+      value={text}
+      aria-invalid={invalid || undefined}
+      onChange={(e) => {
+        setText(e.target.value);
+        const days = parseDays(e.target.value);
+        if (days !== null) onChange(days);
+      }}
+      onBlur={() => setText(String(parseDays(text) ?? value))}
+      className="w-20 text-right tabular-nums"
+    />
+  );
+}
+
 function GitLab() {
   const [s, setS] = useGitLabSettings();
   const patch = useCallback((p: Partial<GitLabSettings>) => setS((prev) => ({ ...prev, ...p })), [setS]);
@@ -126,14 +158,7 @@ function GitLab() {
               <TextInput value={s.group} onChange={(e) => patch({ group: e.target.value })} placeholder="group/subgroup" className="w-40" />
             </Field>
             <Field label="Days">
-              <TextInput
-                type="number"
-                min={1}
-                max={365}
-                value={win.days}
-                onChange={(e) => patchWin({ days: Math.min(365, Math.max(1, Math.floor(Number(e.target.value)) || 30)) })}
-                className="w-20 text-right tabular-nums"
-              />
+              <DaysInput key={s.tab} value={win.days} onChange={(days) => patchWin({ days })} />
             </Field>
             {s.tab === "pipelines" ? (
               <Field label="Scan">
