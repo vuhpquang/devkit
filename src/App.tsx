@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
 import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, usePrefs } from "./app/prefs";
+import { favoriteShortcutIndex, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
 import { About, APP } from "./app/About";
@@ -117,6 +118,7 @@ function useAutoHide(enabled: boolean) {
 function Shell() {
   const { activeId, setActiveId } = useActiveTool();
   const { markUsed, toggleFavorite } = usePrefs();
+  const favTools = useFavoriteTools();
   const { settings, update } = useSettings();
   const { check } = useUpdater();
   const [query, setQuery] = useState("");
@@ -204,6 +206,16 @@ function Shell() {
         }
         return;
       }
+      const fav = favoriteShortcutIndex(e);
+      if (fav !== null) {
+        const target = favTools[fav];
+        if (target) {
+          e.preventDefault();
+          setPaletteOpen(false);
+          select(target.id);
+        }
+        return;
+      }
       const mod = e.metaKey || e.ctrlKey;
       if (!mod || e.altKey) return;
       if (key === "k" && !menuOwnsKeys) {
@@ -219,7 +231,7 @@ function Shell() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeId, toggleFavorite, toggleSidebar, openSettings]);
+  }, [activeId, toggleFavorite, toggleSidebar, openSettings, favTools, select]);
 
   const sidebar = (
     <Sidebar

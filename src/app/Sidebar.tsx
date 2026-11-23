@@ -7,6 +7,7 @@ import { ThemeSwitcher } from "./theme";
 import { usePrefs } from "./prefs";
 import { searchTools } from "./search";
 import { openToolMenu } from "./toolMenu";
+import { FAVORITE_SHORTCUTS, useCmdHeld, useFavoriteTools } from "./favorites";
 import { isToolSearchable, isToolVisible, useSettings } from "./settings";
 
 interface Props {
@@ -27,9 +28,12 @@ interface ItemProps {
   onMove?: (delta: -1 | 1) => void;
   dragging?: boolean;
   onPointerDown?: (e: React.PointerEvent) => void;
+  /** 1…9 when the row has a ⌘-number shortcut; `showShortcut` while ⌘ is held. */
+  shortcut?: number;
+  showShortcut?: boolean;
 }
 
-function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onPointerDown }: ItemProps) {
+function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onPointerDown, shortcut, showShortcut }: ItemProps) {
   const { favorites, toggleFavorite } = usePrefs();
   const Icon = tool.icon;
   const favorite = favorites.includes(tool.id);
@@ -56,7 +60,7 @@ function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onP
           }
         }}
         aria-current={active ? "page" : undefined}
-        aria-keyshortcuts={onMove ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
+        aria-keyshortcuts={[shortcut && `Meta+${shortcut}`, onMove && "Alt+ArrowUp Alt+ArrowDown"].filter(Boolean).join(" ") || undefined}
         className={cx(
           "w-full h-8 flex items-center gap-2.5 pl-2.5 pr-8 rounded-md text-left text-base transition-colors duration-75",
           "outline-none focus-visible:ring-2 focus-visible:ring-accent-ring",
@@ -71,7 +75,10 @@ function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onP
         />
         <span className="truncate flex-1">{tool.name}</span>
       </button>
-      {tool.online && (
+      {shortcut !== undefined && showShortcut && (
+        <Kbd className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">⌘{shortcut}</Kbd>
+      )}
+      {tool.online && !showShortcut && (
         <span title="Uses the network" className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none group-hover:opacity-0">
           <Globe size={12} className="text-info opacity-80" aria-label="Online" />
         </span>
@@ -88,6 +95,7 @@ function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onP
         className={cx(
           "absolute right-1 top-1/2 -translate-y-1/2 grid place-items-center w-6 h-6 rounded-sm",
           "opacity-0 group-hover:opacity-100 transition-opacity duration-75",
+          showShortcut && shortcut !== undefined && "invisible",
           favorite ? "text-accent" : "text-fg-faint hover:text-fg",
         )}
       >
@@ -103,6 +111,7 @@ const DRAG_THRESHOLD = 4;
 /** The Favorites section: drag a row (or ⌥↑ / ⌥↓, or the context menu) to reorder. */
 function FavoritesList({ list, activeId, onSelect }: { list: ToolDef[]; activeId: string | null; onSelect: (id: string) => void }) {
   const { moveFavorite } = usePrefs();
+  const cmdHeld = useCmdHeld();
   const listRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ id: string; over: number } | null>(null);
   const justDragged = useRef(false);
@@ -172,6 +181,8 @@ function FavoritesList({ list, activeId, onSelect }: { list: ToolDef[]; activeId
             onMove={(delta) => move(i, delta)}
             dragging={drag?.id === t.id}
             onPointerDown={(e) => startPress(e, t.id)}
+            shortcut={i < FAVORITE_SHORTCUTS ? i + 1 : undefined}
+            showShortcut={cmdHeld && !drag}
           />
         </div>
       ))}
@@ -198,14 +209,13 @@ function Section({ title, children, raw }: { title: string; children: React.Reac
 }
 
 export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSettings }: Props) {
-  const { favorites } = usePrefs();
   const { settings } = useSettings();
   const visible = tools.filter((t) => isToolVisible(t, settings));
+  const favTools = useFavoriteTools();
   const searchRef = useRef<HTMLInputElement>(null);
   const searching = query.trim().length > 0;
   // Search reaches hidden tools too; switched-off online tools stay out.
   const results = searching ? searchTools(tools.filter((t) => isToolSearchable(t, settings)), query) : [];
-  const favTools = favorites.map((id) => visible.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
 
   return (
     <aside className="w-[244px] shrink-0 flex flex-col bg-sidebar border-r border-line">

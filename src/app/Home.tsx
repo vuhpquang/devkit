@@ -4,9 +4,10 @@ import type { ToolDef } from "../tools/types";
 import { Button, cx, IconTile, Kbd, OnlineBadge } from "../lib/ui";
 import { usePrefs } from "./prefs";
 import { openToolMenu } from "./toolMenu";
+import { FAVORITE_SHORTCUTS, useCmdHeld, useFavoriteTools } from "./favorites";
 import { isToolVisible, useSettings } from "./settings";
 
-function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) => void }) {
+function ToolCard({ tool, onSelect, shortcut }: { tool: ToolDef; onSelect: (id: string) => void; shortcut?: number }) {
   const { favorites, toggleFavorite } = usePrefs();
   const favorite = favorites.includes(tool.id);
   return (
@@ -33,6 +34,9 @@ function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) =>
           <p className="text-sm text-fg-muted mt-0.5 line-clamp-2">{tool.description}</p>
         </div>
       </button>
+      {shortcut !== undefined && (
+        <Kbd className="absolute top-3 right-3 pointer-events-none">⌘{shortcut}</Kbd>
+      )}
       {/* Mouse shortcut; keyboard users have ⌘D on the open tool and the context menu. */}
       <button
         type="button"
@@ -43,6 +47,7 @@ function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) =>
         onClick={() => toggleFavorite(tool.id)}
         className={cx(
           "absolute top-2.5 right-2.5 grid place-items-center w-6 h-6 rounded-sm transition-[opacity,transform] duration-150 group-hover:-translate-y-px",
+          shortcut !== undefined && "invisible",
           favorite ? "text-accent" : "text-fg-faint hover:text-fg opacity-0 group-hover:opacity-100",
         )}
       >
@@ -52,7 +57,7 @@ function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) =>
   );
 }
 
-function Grid({ title, list, onSelect }: { title: string; list: ToolDef[]; onSelect: (id: string) => void }) {
+function Grid({ title, list, onSelect, shortcuts }: { title: string; list: ToolDef[]; onSelect: (id: string) => void; shortcuts?: boolean }) {
   if (list.length === 0) return null;
   return (
     <section className="mb-7">
@@ -61,8 +66,8 @@ function Grid({ title, list, onSelect }: { title: string; list: ToolDef[]; onSel
         <span className="text-fg-faint font-normal tabular-nums">{list.length}</span>
       </h2>
       <div className="grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(15.5rem,1fr))]">
-        {list.map((t) => (
-          <ToolCard key={t.id} tool={t} onSelect={onSelect} />
+        {list.map((t, i) => (
+          <ToolCard key={t.id} tool={t} onSelect={onSelect} shortcut={shortcuts && i < FAVORITE_SHORTCUTS ? i + 1 : undefined} />
         ))}
       </div>
     </section>
@@ -70,10 +75,10 @@ function Grid({ title, list, onSelect }: { title: string; list: ToolDef[]; onSel
 }
 
 export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; onSearch: () => void }) {
-  const { favorites } = usePrefs();
   const { settings } = useSettings();
   const visible = tools.filter((t) => isToolVisible(t, settings));
-  const favTools = favorites.map((id) => visible.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+  const favTools = useFavoriteTools();
+  const cmdHeld = useCmdHeld();
   const local = visible.filter((t) => !t.online).length;
   const hiddenCount = tools.length - visible.length;
 
@@ -102,7 +107,7 @@ export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; o
           </Button>
         </div>
 
-        <Grid title="Favorites" list={favTools} onSelect={onSelect} />
+        <Grid title="Favorites" list={favTools} onSelect={onSelect} shortcuts={cmdHeld} />
         {favTools.length === 0 && (
           <p className="mb-7 -mt-2 text-sm text-fg-faint flex items-center gap-1.5">
             <Star size={13} aria-hidden /> Click the star on a tool (or press <Kbd>⌘D</Kbd> in it) to pin it here and in the sidebar.
