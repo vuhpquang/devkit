@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
 import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, usePrefs } from "./app/prefs";
-import { favoriteShortcutIndex, useFavoriteTools } from "./app/favorites";
+import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
 import { About, APP } from "./app/About";
@@ -206,13 +206,14 @@ function Shell() {
         }
         return;
       }
-      const fav = favoriteShortcutIndex(e);
-      if (fav !== null) {
-        const target = favTools[fav];
-        if (target) {
+      // ⌘0 = All tools, ⌘1…⌘9 = favorites in sidebar order.
+      const digit = numberShortcut(e);
+      if (digit !== null) {
+        const target = digit === 0 ? null : favTools[digit - 1]?.id;
+        if (target !== undefined) {
           e.preventDefault();
           setPaletteOpen(false);
-          select(target.id);
+          select(target);
         }
         return;
       }
@@ -232,6 +233,27 @@ function Shell() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [activeId, toggleFavorite, toggleSidebar, openSettings, favTools, select]);
+
+  // Ctrl+Tab / Ctrl+Shift+Tab cycle through the favorites like browser tabs. Capture phase, so an editor
+  // that handles Tab can't swallow it first.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const dir = tabCycleDirection(e);
+      if (dir === null) return;
+      const next = cycleFavorite(
+        favTools.map((t) => t.id),
+        activeId,
+        dir,
+      );
+      if (next === null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPaletteOpen(false);
+      select(next);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [favTools, activeId, select]);
 
   const sidebar = (
     <Sidebar

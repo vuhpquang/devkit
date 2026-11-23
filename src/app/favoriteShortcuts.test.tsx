@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { favoriteShortcutIndex, CMD_HOLD_MS } from "./favorites";
+import { cycleFavorite, numberShortcut, tabCycleDirection, CMD_HOLD_MS } from "./favorites";
 import { PrefsProvider } from "./prefs";
 import { Sidebar } from "./Sidebar";
 import App from "../App";
@@ -14,19 +14,41 @@ const key = (code: string, mods: Partial<Record<"metaKey" | "ctrlKey" | "altKey"
   ...mods,
 });
 
-describe("favoriteShortcutIndex", () => {
-  it("maps ⌘1…⌘9 to 0…8", () => {
-    expect(favoriteShortcutIndex(key("Digit1", { metaKey: true }))).toBe(0);
-    expect(favoriteShortcutIndex(key("Digit9", { metaKey: true }))).toBe(8);
+describe("numberShortcut", () => {
+  it("maps ⌘0…⌘9 to their digit", () => {
+    expect(numberShortcut(key("Digit0", { metaKey: true }))).toBe(0);
+    expect(numberShortcut(key("Digit1", { metaKey: true }))).toBe(1);
+    expect(numberShortcut(key("Digit9", { metaKey: true }))).toBe(9);
   });
 
-  it("ignores ⌘0, other modifiers and plain digits", () => {
-    expect(favoriteShortcutIndex(key("Digit0", { metaKey: true }))).toBeNull();
-    expect(favoriteShortcutIndex(key("Digit1", { metaKey: true, shiftKey: true }))).toBeNull();
-    expect(favoriteShortcutIndex(key("Digit1", { metaKey: true, altKey: true }))).toBeNull();
-    expect(favoriteShortcutIndex(key("Digit1", { ctrlKey: true }))).toBeNull();
-    expect(favoriteShortcutIndex(key("Digit1"))).toBeNull();
-    expect(favoriteShortcutIndex(key("KeyA", { metaKey: true }))).toBeNull();
+  it("ignores other modifiers and plain digits", () => {
+    expect(numberShortcut(key("Digit1", { metaKey: true, shiftKey: true }))).toBeNull();
+    expect(numberShortcut(key("Digit1", { metaKey: true, altKey: true }))).toBeNull();
+    expect(numberShortcut(key("Digit1", { ctrlKey: true }))).toBeNull();
+    expect(numberShortcut(key("Digit1"))).toBeNull();
+    expect(numberShortcut(key("KeyA", { metaKey: true }))).toBeNull();
+  });
+});
+
+describe("Ctrl+Tab", () => {
+  it("reads Ctrl+Tab and Ctrl+Shift+Tab only", () => {
+    const k = (mods: Partial<KeyboardEvent>) => ({ key: "Tab", ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...mods });
+    expect(tabCycleDirection(k({ ctrlKey: true }))).toBe(1);
+    expect(tabCycleDirection(k({ ctrlKey: true, shiftKey: true }))).toBe(-1);
+    expect(tabCycleDirection(k({}))).toBeNull();
+    expect(tabCycleDirection(k({ ctrlKey: true, metaKey: true }))).toBeNull();
+    expect(tabCycleDirection({ ...k({ ctrlKey: true }), key: "a" })).toBeNull();
+  });
+
+  it("cycles through favorites and wraps around", () => {
+    const ids = ["a", "b", "c"];
+    expect(cycleFavorite(ids, "a", 1)).toBe("b");
+    expect(cycleFavorite(ids, "c", 1)).toBe("a");
+    expect(cycleFavorite(ids, "a", -1)).toBe("c");
+    // From Home or a non-favorite: first going forward, last going back.
+    expect(cycleFavorite(ids, null, 1)).toBe("a");
+    expect(cycleFavorite(ids, "zz", -1)).toBe("c");
+    expect(cycleFavorite([], "a", 1)).toBeNull();
   });
 });
 
@@ -48,6 +70,7 @@ describe("⌘-number shortcuts", () => {
     fireEvent.keyDown(window, { key: "Meta", metaKey: true });
     expect(within(section).getByText("⌘1")).toBeInTheDocument();
     expect(within(section).getByText("⌘2")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /All tools/ })).getByText("⌘0")).toBeInTheDocument();
     fireEvent.keyUp(window, { key: "Meta" });
     expect(within(section).queryByText("⌘1")).not.toBeInTheDocument();
   });
@@ -73,5 +96,23 @@ describe("⌘-number shortcuts", () => {
     // No third favorite: ⌘3 does nothing.
     fireEvent.keyDown(window, { key: "3", code: "Digit3", metaKey: true });
     expect(screen.getByRole("heading", { name: "Base64" })).toBeInTheDocument();
+  });
+
+  it("switches favorites with Ctrl+Tab and Ctrl+Shift+Tab", () => {
+    render(<App />);
+    fireEvent.keyDown(window, { key: "Tab", ctrlKey: true });
+    expect(screen.getByRole("heading", { name: "UUID Generator" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Tab", ctrlKey: true });
+    expect(screen.getByRole("heading", { name: "Base64" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Tab", ctrlKey: true, shiftKey: true });
+    expect(screen.getByRole("heading", { name: "UUID Generator" })).toBeInTheDocument();
+  });
+
+  it("goes back to All tools with ⌘0", () => {
+    render(<App />);
+    fireEvent.keyDown(window, { key: "1", code: "Digit1", metaKey: true });
+    expect(screen.getByRole("heading", { name: "UUID Generator" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "0", code: "Digit0", metaKey: true });
+    expect(screen.getByRole("heading", { name: "DevKit" })).toBeInTheDocument();
   });
 });

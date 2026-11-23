@@ -68,8 +68,10 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   favorite. Favorites (`devkit.favorites`, ordered): hover star on every sidebar row and Home card, native right-click
   menu (`toolMenu.ts`, Tauri `Menu.popup`; the browser keeps its own menu), reorder in the sidebar by dragging
   (pointer events, not HTML5 DnD) or ⌥↑ / ⌥↓ / Move Up·Down; `moveIdBefore` in `prefs.tsx` is the pure model.
-  ⌘1…⌘9 open the first nine favorites; pressing ⌘ shows the numbers at once (hidden again by any other chord) on the sidebar rows and Home
-  cards (`favorites.ts`: `useFavoriteTools` is the one ordered list all three use, `useCmdHeld`, `favoriteShortcutIndex`).
+  ⌘0 = All tools, ⌘1…⌘9 = the first nine favorites; pressing ⌘ shows the numbers at once (hidden again by any other
+  chord) on "All tools", the sidebar favorites and Home cards. Ctrl+Tab / Ctrl+Shift+Tab cycle the favorites like
+  browser tabs (capture-phase listener, so editors can't eat it). `favorites.ts`: `useFavoriteTools` (the one ordered
+  list all of these use), `useCmdHeld`, `numberShortcut`, `cycleFavorite`, `tabCycleDirection`.
   macOS has a case-insensitive disk: `favorites.ts`'s tests are `favoriteShortcuts.test.tsx`, not `favorites.test.tsx`
   (that name is `Favorites.test.tsx`).
 - Settings (⌘,) is a sheet in the window (`SettingsView.tsx`), panes in app-shell order: General, Tools

@@ -47,7 +47,7 @@ degrades gracefully (inline error on offline/timeout/rate-limit).
 - [x] **Settings** — theme, sidebar mode, startup, hide/show tools, online tools off, editor font size/wrap/line numbers, updates
 - [ ] **Input history** per tool (opt-in, local only)
 - [x] **Keyboard shortcuts**: ⌘K palette with arrow keys, ⌘D favorite, Enter runs online lookups
-- [x] **Favorites / pinned tools** at top of sidebar, Home and ⌘K; star on hover, right-click menu, drag / ⌥↑↓ to reorder, ⌘1…⌘9 to open (hold ⌘ to see the numbers) (+ recent tools in ⌘K)
+- [x] **Favorites / pinned tools** at top of sidebar, Home and ⌘K; star on hover, right-click menu, drag / ⌥↑↓ to reorder, ⌘0 All tools, ⌘1…⌘9 to open (press ⌘ to see the numbers), Ctrl+Tab to cycle (+ recent tools in ⌘K)
 - [x] **UI revamp**: icon-palette tokens, system fonts, CodeMirror editors, live output, home grid, overlay title bar
 - [ ] Auto-update via Tauri updater
 

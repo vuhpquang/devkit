@@ -109,9 +109,18 @@ function Item({ tool, active, onSelect, favoritesPosition, onMove, dragging, onP
 const DRAG_THRESHOLD = 4;
 
 /** The Favorites section: drag a row (or ⌥↑ / ⌥↓, or the context menu) to reorder. */
-function FavoritesList({ list, activeId, onSelect }: { list: ToolDef[]; activeId: string | null; onSelect: (id: string) => void }) {
+function FavoritesList({
+  list,
+  activeId,
+  onSelect,
+  cmdHeld,
+}: {
+  list: ToolDef[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  cmdHeld: boolean;
+}) {
   const { moveFavorite } = usePrefs();
-  const cmdHeld = useCmdHeld();
   const listRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ id: string; over: number } | null>(null);
   const justDragged = useRef(false);
@@ -212,6 +221,7 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
   const { settings } = useSettings();
   const visible = tools.filter((t) => isToolVisible(t, settings));
   const favTools = useFavoriteTools();
+  const cmdHeld = useCmdHeld();
   const searchRef = useRef<HTMLInputElement>(null);
   const searching = query.trim().length > 0;
   // Search reaches hidden tools too; switched-off online tools stay out.
@@ -282,6 +292,7 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
               <button
                 type="button"
                 onClick={() => onSelect(null)}
+                aria-keyshortcuts="Meta+0"
                 aria-current={activeId === null ? "page" : undefined}
                 className={cx(
                   "w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-base transition-colors duration-75",
@@ -291,12 +302,16 @@ export function Sidebar({ activeId, onSelect, query, onQuery, onAbout, onSetting
               >
                 <LayoutGrid size={16} className={activeId === null ? "text-accent-text" : "text-fg-faint"} aria-hidden />
                 All tools
-                <span className="ml-auto text-sm text-fg-faint tabular-nums">{visible.length}</span>
+                {cmdHeld ? (
+                  <Kbd className="ml-auto">⌘0</Kbd>
+                ) : (
+                  <span className="ml-auto text-sm text-fg-faint tabular-nums">{visible.length}</span>
+                )}
               </button>
             </div>
             {favTools.length > 0 && (
               <Section title="Favorites" raw>
-                <FavoritesList list={favTools} activeId={activeId} onSelect={onSelect} />
+                <FavoritesList list={favTools} activeId={activeId} onSelect={onSelect} cmdHeld={cmdHeld} />
               </Section>
             )}
             {CATEGORY_ORDER.map((cat) => {

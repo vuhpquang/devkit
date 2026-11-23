@@ -19,17 +19,38 @@ export function useFavoriteTools(): ToolDef[] {
 
 type KeyLike = Pick<KeyboardEvent, "metaKey" | "ctrlKey" | "altKey" | "shiftKey" | "code">;
 
-/** 0-based favorite index for ⌘1…⌘9 (by physical key, so it works on any layout), otherwise null. */
-export function favoriteShortcutIndex(e: KeyLike): number | null {
+/**
+ * The digit of a ⌘0…⌘9 press (by physical key, so it works on any layout), otherwise null.
+ * ⌘0 = All tools, ⌘1…⌘9 = the favorite at that position.
+ */
+export function numberShortcut(e: KeyLike): number | null {
   if (!e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return null;
-  const m = /^Digit([1-9])$/.exec(e.code);
-  return m ? Number(m[1]) - 1 : null;
+  const m = /^Digit([0-9])$/.exec(e.code);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Ctrl+Tab / Ctrl+Shift+Tab, like browser tabs: the next / previous favorite, wrapping around.
+ * From Home or a tool that isn't a favorite: the first / last favorite. No favorites → null.
+ */
+export function cycleFavorite(favoriteIds: string[], activeId: string | null, dir: 1 | -1): string | null {
+  const n = favoriteIds.length;
+  if (n === 0) return null;
+  const at = activeId === null ? -1 : favoriteIds.indexOf(activeId);
+  if (at < 0) return favoriteIds[dir === 1 ? 0 : n - 1];
+  return favoriteIds[(at + dir + n) % n];
+}
+
+/** Ctrl+Tab = 1, Ctrl+Shift+Tab = -1, anything else null. */
+export function tabCycleDirection(e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey">): 1 | -1 | null {
+  if (e.key !== "Tab" || !e.ctrlKey || e.metaKey || e.altKey) return null;
+  return e.shiftKey ? -1 : 1;
 }
 
 /** How long ⌘ must be held alone before the numbers show. 0 = at once: the owner wants them the moment ⌘ goes down (2026-11-23). */
 export const CMD_HOLD_MS = 0;
 
-/** True while ⌘ is held down (after `delay`). Another chord hides it, except ⌘1…⌘9. */
+/** True while ⌘ is held down (after `delay`). Another chord hides it, except ⌘0…⌘9. */
 export function useCmdHeld(delay = CMD_HOLD_MS): boolean {
   const [held, setHeld] = useState(false);
   useEffect(() => {
@@ -44,7 +65,7 @@ export function useCmdHeld(delay = CMD_HOLD_MS): boolean {
         if (e.ctrlKey || e.altKey || e.shiftKey) return reset();
         if (delay <= 0) setHeld(true);
         else if (timer === undefined) timer = setTimeout(() => setHeld(true), delay);
-      } else if (favoriteShortcutIndex(e) === null) {
+      } else if (numberShortcut(e) === null) {
         reset();
       }
     };
