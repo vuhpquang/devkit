@@ -26,10 +26,10 @@ export function favoriteShortcutIndex(e: KeyLike): number | null {
   return m ? Number(m[1]) - 1 : null;
 }
 
-/** How long ⌘ must be held alone before the numbers show, so ⌘C / ⌘V don't flash them. */
-export const CMD_HOLD_MS = 350;
+/** How long ⌘ must be held alone before the numbers show. 0 = at once: the owner wants them the moment ⌘ goes down (2026-11-23). */
+export const CMD_HOLD_MS = 0;
 
-/** True while ⌘ is held down (after CMD_HOLD_MS). Another chord hides it, except ⌘1…⌘9. */
+/** True while ⌘ is held down (after `delay`). Another chord hides it, except ⌘1…⌘9. */
 export function useCmdHeld(delay = CMD_HOLD_MS): boolean {
   const [held, setHeld] = useState(false);
   useEffect(() => {
@@ -42,7 +42,8 @@ export function useCmdHeld(delay = CMD_HOLD_MS): boolean {
     const onDown = (e: KeyboardEvent) => {
       if (e.key === "Meta") {
         if (e.ctrlKey || e.altKey || e.shiftKey) return reset();
-        if (timer === undefined) timer = setTimeout(() => setHeld(true), delay);
+        if (delay <= 0) setHeld(true);
+        else if (timer === undefined) timer = setTimeout(() => setHeld(true), delay);
       } else if (favoriteShortcutIndex(e) === null) {
         reset();
       }

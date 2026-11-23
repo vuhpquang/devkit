@@ -37,8 +37,8 @@ describe("⌘-number shortcuts", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("shows ⌘1, ⌘2 on the favorites while ⌘ is held, and hides them on release", () => {
-    vi.useFakeTimers();
+  it("shows ⌘1, ⌘2 on the favorites as soon as ⌘ goes down, and hides them on release", () => {
+    expect(CMD_HOLD_MS).toBe(0);
     render(
       <PrefsProvider>
         <Sidebar activeId={null} onSelect={vi.fn()} query="" onQuery={vi.fn()} />
@@ -46,10 +46,6 @@ describe("⌘-number shortcuts", () => {
     );
     const section = screen.getByText("Favorites").parentElement as HTMLElement;
     fireEvent.keyDown(window, { key: "Meta", metaKey: true });
-    // A quick ⌘C must not flash the numbers.
-    act(() => vi.advanceTimersByTime(CMD_HOLD_MS - 50));
-    expect(within(section).queryByText("⌘1")).not.toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(100));
     expect(within(section).getByText("⌘1")).toBeInTheDocument();
     expect(within(section).getByText("⌘2")).toBeInTheDocument();
     fireEvent.keyUp(window, { key: "Meta" });
@@ -64,8 +60,9 @@ describe("⌘-number shortcuts", () => {
       </PrefsProvider>,
     );
     fireEvent.keyDown(window, { key: "Meta", metaKey: true });
+    expect(screen.getByText("⌘1")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "c", code: "KeyC", metaKey: true });
-    act(() => vi.advanceTimersByTime(CMD_HOLD_MS * 2));
+    act(() => vi.advanceTimersByTime(1000));
     expect(screen.queryByText("⌘1")).not.toBeInTheDocument();
   });
 
