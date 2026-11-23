@@ -16,6 +16,7 @@ import {
   wcag,
   type Rgba,
 } from "./logic";
+import { useHandoffText } from "../../lib/toolActive";
 
 /** Checkerboard behind the swatch so transparency is visible; built from tokens. */
 const CHECKER = {
@@ -60,7 +61,8 @@ function ContrastRow({ color, bg, label }: { color: Rgba; bg: Rgba; label: strin
 }
 
 function ColorConverter() {
-  const [input, setInput] = useState("#f5a524");
+  const handoff = useHandoffText();
+  const [input, setInput] = useState(handoff?.text.trim() ?? "#f5a524");
   const deferred = useDeferredValue(input);
   const parsed = useMemo(() => parseColor(deferred), [deferred]);
   const color = parsed.ok ? parsed.color : null;

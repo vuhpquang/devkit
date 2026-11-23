@@ -3,6 +3,7 @@ import { ArrowLeftRight, FileText, WrapText } from "lucide-react";
 import { Button, Segmented } from "./primitives";
 import { EditorPane, Split, ToolBar, ToolBarDivider, ToolPage, type Status } from "./layout";
 import { useEditorDefaults, type Lang } from "./CodeEditor";
+import { useHandoffText } from "../toolActive";
 
 export type TransformResult = { ok: true; value: string } | { ok: false; error: string };
 
@@ -42,8 +43,12 @@ export function TransformTool<M extends string>({
   options?: ReactNode;
   wrapByDefault?: boolean;
 }) {
-  const [modeValue, setMode] = useState<M>(initialMode ?? modes[0].value);
-  const [input, setInput] = useState("");
+  const handoff = useHandoffText();
+  const [modeValue, setMode] = useState<M>(() => {
+    const wanted = modes.find((m) => m.value === handoff?.mode);
+    return wanted ? wanted.value : (initialMode ?? modes[0].value);
+  });
+  const [input, setInput] = useState(handoff?.text ?? "");
   const defaults = useEditorDefaults();
   const [wrap, setWrap] = useState(wrapByDefault || defaults.wrap);
   const mode = modes.find((m) => m.value === modeValue) ?? modes[0];

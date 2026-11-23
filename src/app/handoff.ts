@@ -9,7 +9,8 @@
 export type Handoff =
   | { kind: "image"; name: string; mime: string; bytes: Uint8Array }
   | { kind: "images"; files: { name: string; mime: string; bytes: Uint8Array }[] }
-  | { kind: "text"; text: string };
+  /** `mode`: a TransformTool mode to open in ("decode"), when the target has one. */
+  | { kind: "text"; text: string; mode?: string };
 
 export const OPEN_TOOL_EVENT = "devkit:open-tool";
 

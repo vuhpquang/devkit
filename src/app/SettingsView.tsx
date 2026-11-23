@@ -101,6 +101,15 @@ function GeneralPane() {
           />
         </Row>
       </Section>
+      <Section title="Clipboard" footer="The clipboard is read on this Mac only, when ⌘K opens, and never sent anywhere.">
+        <Row label="Suggest tools from the clipboard" hint="⌘K offers the tool for what you copied: JSON, a JWT, a timestamp…">
+          <Switch
+            label="Suggest tools from the clipboard"
+            checked={settings.clipboardSuggestions}
+            onChange={(clipboardSuggestions) => update({ clipboardSuggestions })}
+          />
+        </Row>
+      </Section>
       <Section>
         <Row label="Reset all settings" hint="Theme, favorites and recent tools are kept.">
           <Button size="sm" onClick={reset}>

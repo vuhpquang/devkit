@@ -3,6 +3,7 @@ import { CalendarClock, Clock } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, CopyButton, Field, KeyValueList, Panel, Segmented, TextInput, ToolPage } from "../../lib/ui";
 import { guessUnit, isoToEpoch, parseEpoch, relativeTime, type EpochUnit } from "./logic";
+import { useHandoffText } from "../../lib/toolActive";
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -58,6 +59,20 @@ function Timestamp() {
       setEpoch(unit === "s" ? String(r.value) : String(d.getTime()));
     } else setIsoErr("Not a date this tool can read — try 2026-01-31T12:00:00Z");
   };
+
+  // Opened with a clipboard value: a Unix time (10 digits = s, 13 = ms) or a date string.
+  const handoff = useHandoffText();
+  useEffect(() => {
+    const t = handoff?.text.trim();
+    if (!t) return;
+    if (/^\d+$/.test(t)) {
+      const u: EpochUnit = t.length >= 13 ? "ms" : "s";
+      setUnit(u);
+      fromEpoch(t, u);
+    } else fromIso(t);
+    // Once, on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const useNowValue = () => {
     const ms = Date.now();

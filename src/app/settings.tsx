@@ -17,6 +17,10 @@ export interface Settings {
   wrapLines: boolean;
   lineNumbers: boolean;
   autoCheckUpdates: boolean;
+  /** ⌘K and the launcher suggest tools for what's on the clipboard. Off = the clipboard is never read. */
+  clipboardSuggestions: boolean;
+  /** ⌥Space opens the launcher from any app. */
+  globalShortcut: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +32,8 @@ export const DEFAULT_SETTINGS: Settings = {
   wrapLines: false,
   lineNumbers: true,
   autoCheckUpdates: true,
+  clipboardSuggestions: true,
+  globalShortcut: true,
 };
 
 export const FONT_SIZES = [11, 12, 13, 14, 15, 16, 18] as const;
@@ -58,6 +64,8 @@ export function parseSettings(raw: string | null): Settings {
     wrapLines: bool(v.wrapLines, d.wrapLines),
     lineNumbers: bool(v.lineNumbers, d.lineNumbers),
     autoCheckUpdates: bool(v.autoCheckUpdates, d.autoCheckUpdates),
+    clipboardSuggestions: bool(v.clipboardSuggestions, d.clipboardSuggestions),
+    globalShortcut: bool(v.globalShortcut, d.globalShortcut),
   };
 }
 

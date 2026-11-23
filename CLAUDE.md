@@ -49,6 +49,13 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   input survives switching (`useKeepAlive` in `App.tsx`). A hidden tool must not react to window-wide events or keep
   polling: gate paste listeners, Tauri `onDragDropEvent` and auto-refresh intervals on `useToolActive()`
   (`src/lib/toolActive.ts`); Image Converter/Resize, PNG Tint, SVG ↔ React, Port Inspector and GitLab do.
+- Clipboard suggestions: when ⌘K opens (setting General → Clipboard, on by default) it reads the clipboard
+  (`src/lib/clipboard.ts`: tauri-plugin-clipboard-manager in the app — WKWebView's `navigator.clipboard` would show a
+  Paste prompt — `navigator.clipboard` in a browser) and `detectClipboard` (`src/app/clipboard.ts`, pure) lists the
+  tools that fit as "From clipboard". Choosing one hands the text (+ TransformTool mode) over with `sendTo`; tools read
+  it once on mount with `useHandoffText()` (`src/lib/toolActive.ts`, tool id from `ToolIdContext`): TransformTool,
+  JWT, Timestamp, Cron, Color; JSON Format reads `takeHandoff` itself. A new detector = a rule in `detectClipboard`
+  plus the target tool reading `useHandoffText()`. Spec: `docs/superpowers/specs/2026-11-23-clipboard-and-launcher-design.md`.
 - Tool → tool hand-off: `sendTo(id, payload)` / `takeHandoff(id)` (`src/app/handoff.ts`); the shell opens and
   remounts the target. SVG ↔ React → Image Converter → Image Resize use it.
 - HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +

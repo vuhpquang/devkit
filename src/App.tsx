@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
 import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
-import { ToolActiveContext } from "./lib/toolActive";
+import { ToolActiveContext, ToolIdContext } from "./lib/toolActive";
 import { historyKey, startHistory, step, visit } from "./app/history";
 import { isShortcutsKey } from "./app/shortcuts";
 import { ShortcutsSheet } from "./app/ShortcutsSheet";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
-import { CommandPalette } from "./app/CommandPalette";
+import { CommandPalette, type PaletteItem } from "./app/CommandPalette";
 import { About, APP } from "./app/About";
 import { WhatsNew } from "./app/WhatsNew";
 import { Home } from "./app/Home";
@@ -18,7 +18,7 @@ import { UpdaterProvider, useUpdater } from "./app/updater";
 import { checkWhatsNew } from "./app/updates";
 import { inApp, onMenu, type MenuId } from "./app/menuEvents";
 import { useActiveTool } from "./app/useActiveTool";
-import { OPEN_TOOL_EVENT } from "./app/handoff";
+import { OPEN_TOOL_EVENT, sendTo } from "./app/handoff";
 import { getToolById } from "./tools/registry";
 import type { ToolDef } from "./tools/types";
 import { Button, cx, IconTile, OnlineBadge } from "./lib/ui";
@@ -178,6 +178,15 @@ function Shell() {
       open(next.entries[next.index]);
     },
     [history, open],
+  );
+
+  /** A palette row: a clipboard suggestion opens the tool with that text, anything else just opens it. */
+  const openItem = useCallback(
+    (item: PaletteItem) => {
+      if (item.clip) sendTo(item.tool.id, { kind: "text", text: item.clip.text, mode: item.clip.suggestion.mode });
+      else select(item.tool.id);
+    },
+    [select],
   );
 
   const toggleSidebar = useCallback(() => update({ sidebar: toggledSidebar(mode) }), [update, mode]);
@@ -378,9 +387,11 @@ function Shell() {
             const on = id === active?.id;
             return (
               <div key={`${id}:${handoffs[id] ?? 0}`} className="h-full" hidden={!on} inert={!on}>
-                <ToolActiveContext.Provider value={on}>
-                  <Tool />
-                </ToolActiveContext.Provider>
+                <ToolIdContext.Provider value={id}>
+                  <ToolActiveContext.Provider value={on}>
+                    <Tool />
+                  </ToolActiveContext.Provider>
+                </ToolIdContext.Provider>
               </div>
             );
           })}
@@ -398,7 +409,7 @@ function Shell() {
         onWhatsNew={() => setWhatsNewOpen(true)}
       />
       <ShortcutsSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSelect={select} />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onChoose={openItem} />
     </div>
   );
 }

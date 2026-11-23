@@ -4,6 +4,7 @@ import type { ToolDef } from "../types";
 import { Button, EmptyState, Field, Notice, Panel, Segmented, TextInput, ToolPage } from "../../lib/ui";
 import { relativeTime } from "../timestamp/logic";
 import { PRESETS, nextRuns, parseCron } from "./logic";
+import { useHandoffText } from "../../lib/toolActive";
 
 function useMinuteClock(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -15,7 +16,8 @@ function useMinuteClock(): Date {
 }
 
 function CronParser() {
-  const [expr, setExpr] = useState("0 9 * * 1-5");
+  const handoff = useHandoffText();
+  const [expr, setExpr] = useState(handoff?.text.trim() ?? "0 9 * * 1-5");
   const [zone, setZone] = useState<"local" | "utc">("local");
   const deferred = useDeferredValue(expr);
   const parsed = useMemo(() => parseCron(deferred), [deferred]);
