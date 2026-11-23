@@ -9,6 +9,7 @@ import { useTheme, type Theme } from "./theme";
 import { useUpdater } from "./updater";
 import { noteBlocks } from "./updates";
 import { searchTools } from "./search";
+import { useShortcutStatus } from "./launcher";
 
 export type PaneId = "general" | "tools" | "editor" | "updates" | "about";
 
@@ -46,6 +47,15 @@ function Row({ label, hint, children }: { label: ReactNode; hint?: ReactNode; ch
 }
 
 /* ---------------------------------------------------------------- Panes */
+
+/** Under the ⌥Space switch: why it isn't working, when it isn't. */
+function ShortcutHint() {
+  const status = useShortcutStatus();
+  if (status.kind === "browser") return <>Works in the DevKit app, not in a browser.</>;
+  if (status.kind === "error")
+    return <span className="text-danger">⌥Space is taken by another app. Free it there, then turn this off and on.</span>;
+  return null;
+}
 
 function GeneralPane() {
   const { settings, update, reset } = useSettings();
@@ -101,8 +111,17 @@ function GeneralPane() {
           />
         </Row>
       </Section>
-      <Section title="Clipboard" footer="The clipboard is read on this Mac only, when ⌘K opens, and never sent anywhere.">
-        <Row label="Suggest tools from the clipboard" hint="⌘K offers the tool for what you copied: JSON, a JWT, a timestamp…">
+      <Section title="Launcher" footer="⌥Space shows a search box over any app: type, pick a tool with ↑ ↓ and press ↵.">
+        <Row label="Open DevKit with ⌥Space" hint={<ShortcutHint />}>
+          <Switch
+            label="Open DevKit with ⌥Space"
+            checked={settings.globalShortcut}
+            onChange={(globalShortcut) => update({ globalShortcut })}
+          />
+        </Row>
+      </Section>
+      <Section title="Clipboard" footer="The clipboard is read on this Mac only, when ⌘K or the launcher opens, and never sent anywhere.">
+        <Row label="Suggest tools from the clipboard" hint="⌘K and the launcher offer the tool for what you copied: JSON, a JWT, a timestamp…">
           <Switch
             label="Suggest tools from the clipboard"
             checked={settings.clipboardSuggestions}

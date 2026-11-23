@@ -56,6 +56,15 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   it once on mount with `useHandoffText()` (`src/lib/toolActive.ts`, tool id from `ToolIdContext`): TransformTool,
   JWT, Timestamp, Cron, Color; JSON Format reads `takeHandoff` itself. A new detector = a rule in `detectClipboard`
   plus the target tool reading `useHandoffText()`. Spec: `docs/superpowers/specs/2026-11-23-clipboard-and-launcher-design.md`.
+- ⌥Space launcher (General → Launcher, on by default): the main window registers `Alt+Space` with
+  tauri-plugin-global-shortcut (`src/app/launcher.ts`, `useLauncher`; failure → shown under the switch) and toggles a
+  second window `launcher` (`tauri.conf.json`: hidden, transparent — needs `macOSPrivateApi` + the `macos-private-api`
+  feature — no decorations, always on top; loads `index.html?launcher` → `LauncherWindow.tsx`, the ⌘K `PalettePanel`
+  alone, remounted on each show). It has its own capability (`capabilities/launcher.json`: hide itself, read the
+  clipboard). Choosing emits `launcher:open` to `main`, which shows itself and opens the tool. Rust (`lib.rs`): the main
+  window hides on close (probes stop) instead of closing, the Dock icon (`RunEvent::Reopen`) shows it again, the
+  launcher hides when it loses focus. Quickcast uses ⌘Space, so ⌥Space is free on the owner's Mac.
+  macOS disk is case-insensitive: `launcher.ts` and `LauncherWindow.tsx` must keep different names.
 - Tool → tool hand-off: `sendTo(id, payload)` / `takeHandoff(id)` (`src/app/handoff.ts`); the shell opens and
   remounts the target. SVG ↔ React → Image Converter → Image Resize use it.
 - HTTP scope additions: `api.github.com` (updates), `speed.cloudflare.com` (Speed Test), `https://*/api/v4/*` +

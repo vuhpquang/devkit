@@ -17,6 +17,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             let menu = menu::build(app.handle())?;
             app.set_menu(menu)?;
@@ -25,9 +26,23 @@ pub fn run() {
         })
         .manage(sys::probe::Probes::default())
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                use tauri::Manager;
-                sys::probe::stop_all(&window.state::<sys::probe::Probes>());
+            use tauri::Manager;
+            match event {
+                // The main window hides instead of closing, so ⌥Space and the launcher keep working; the Dock icon
+                // brings it back (RunEvent::Reopen below) and ⌘Q quits. Running pings stop as if it had closed.
+                tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    sys::probe::stop_all(&window.state::<sys::probe::Probes>());
+                }
+                // The launcher goes away as soon as you click elsewhere, like Spotlight.
+                tauri::WindowEvent::Focused(false) if window.label() == "launcher" => {
+                    let _ = window.hide();
+                }
+                tauri::WindowEvent::Destroyed => {
+                    sys::probe::stop_all(&window.state::<sys::probe::Probes>());
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -51,6 +66,16 @@ pub fn run() {
             img::image_convert,
             img::image_info,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Clicking the Dock icon while the main window is hidden shows it again.
+            if let tauri::RunEvent::Reopen { .. } = event {
+                use tauri::Manager;
+                if let Some(main) = app.get_webview_window("main") {
+                    let _ = main.show();
+                    let _ = main.set_focus();
+                }
+            }
+        });
 }

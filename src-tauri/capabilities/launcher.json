@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "launcher",
+  "description": "The \u2325Space launcher: reads the clipboard, hides itself, tells the main window what to open.",
+  "windows": [
+    "launcher"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-hide",
+    "clipboard-manager:allow-read-text"
+  ]
+}

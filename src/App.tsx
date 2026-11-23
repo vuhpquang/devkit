@@ -5,6 +5,7 @@ import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
 import { ToolActiveContext, ToolIdContext } from "./lib/toolActive";
 import { historyKey, startHistory, step, visit } from "./app/history";
 import { isShortcutsKey } from "./app/shortcuts";
+import { useLauncher, type LauncherOpen } from "./app/launcher";
 import { ShortcutsSheet } from "./app/ShortcutsSheet";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
@@ -188,6 +189,18 @@ function Shell() {
     },
     [select],
   );
+
+  // ⌥Space launcher (another window) asks for a tool: the main window has already come forward.
+  const openFromLauncher = useCallback(
+    (req: LauncherOpen) => {
+      if (!getToolById(req.toolId)) return;
+      setPaletteOpen(false);
+      if (req.text !== undefined) sendTo(req.toolId, { kind: "text", text: req.text, mode: req.mode });
+      else select(req.toolId);
+    },
+    [select],
+  );
+  useLauncher(settings.globalShortcut, openFromLauncher);
 
   const toggleSidebar = useCallback(() => update({ sidebar: toggledSidebar(mode) }), [update, mode]);
   const openSettings = useCallback((pane: PaneId = "general") => setSettingsPane(pane), []);

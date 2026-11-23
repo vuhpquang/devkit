@@ -28,6 +28,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "App",
     items: [
+      { keys: [["⌥", "Space"]], label: "Launcher, from any app" },
       { keys: [["⌘", ","]], label: "Settings" },
       { keys: [["⌘", "/"]], label: "Keyboard shortcuts" },
       { keys: [["Esc"]], label: "Close a dialog or the palette" },

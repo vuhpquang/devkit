@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "DevKit",
         "width": 1200,
         "height": 780,
@@ -23,11 +24,28 @@
           "x": 18,
           "y": 34
         }
+      },
+      {
+        "label": "launcher",
+        "title": "DevKit Launcher",
+        "url": "index.html?launcher",
+        "width": 640,
+        "height": 460,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "center": true,
+        "shadow": false,
+        "visibleOnAllWorkspaces": true
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

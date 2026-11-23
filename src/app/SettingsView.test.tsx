@@ -25,6 +25,20 @@ describe("Settings", () => {
     expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["General", "Tools", "Editor", "Updates", "About"]);
   });
 
+  it("has ⌥Space and clipboard switches in General, both on by default and saved when turned off", async () => {
+    render(<Harness />);
+    const launcher = screen.getByRole("switch", { name: "Open DevKit with ⌥Space" });
+    const clip = screen.getByRole("switch", { name: "Suggest tools from the clipboard" });
+    expect(launcher).toHaveAttribute("aria-checked", "true");
+    expect(clip).toHaveAttribute("aria-checked", "true");
+    // Outside the app the shortcut can't work; the row says so.
+    expect(screen.getByText("Works in the DevKit app, not in a browser.")).toBeInTheDocument();
+    await userEvent.click(launcher);
+    await userEvent.click(clip);
+    const saved = JSON.parse(localStorage.getItem("devkit.settings")!);
+    expect([saved.globalShortcut, saved.clipboardSuggestions]).toEqual([false, false]);
+  });
+
   it("hiding a tool removes it from the sidebar and persists", async () => {
     render(<Harness initial="tools" />);
     const nav = screen.getByRole("navigation", { name: "Tools" });
