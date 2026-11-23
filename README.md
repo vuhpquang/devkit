@@ -106,7 +106,14 @@ ping & traceroute, speed test).
 
 ## Using it
 
-- **⌘K** jumps to any tool (arrow keys + Enter; recent tools first). **⌘D** stars the open tool.
+- **⌥Space** from any app opens a small launcher: type, pick a tool with the arrows, Enter (can be turned off in
+  Settings → General).
+- **⌘K** jumps to any tool (arrow keys + Enter): what you copied first (JSON, a JWT, a timestamp, Base64… open
+  straight in the right tool), then favorites and recent tools.
+- **Favorites**: star a tool (the star on hover, right-click, or **⌘D**), drag it onto Favorites, drag to reorder.
+  **⌘1…⌘9** open them (press **⌘** to see the numbers), **⌘0** goes to All tools, **⌃Tab** cycles them.
+- **⌘[ / ⌘]** back and forward through the tools you opened; switching keeps what you typed in the last six.
+- **⌘/** lists every shortcut.
 - **⌘,** Settings: hide tools you don't use, switch online tools off, editor font size, sidebar shown / hidden /
   auto-hide (**⌃⌘S** toggles it).
 - Local tools update as you type; **Sample** loads an example. Online tools run on **Enter**.
