@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelLeft, Search, Settings as SettingsIcon, Star } from "lucide-react";
 import { ThemeProvider } from "./app/theme";
 import { PrefsProvider, pushRecent, usePrefs } from "./app/prefs";
 import { ToolActiveContext } from "./lib/toolActive";
+import { historyKey, startHistory, step, visit } from "./app/history";
 import { cycleFavorite, numberShortcut, tabCycleDirection, useFavoriteTools } from "./app/favorites";
 import { Sidebar } from "./app/Sidebar";
 import { CommandPalette } from "./app/CommandPalette";
@@ -22,7 +23,7 @@ import { Button, cx, IconTile, OnlineBadge } from "./lib/ui";
 import { openExternal } from "./lib/openExternal";
 
 /** Room on the left of the title bar for the traffic lights + the sidebar button (overlay title bar). */
-const CHROME_LEFT = "pl-[124px]";
+const CHROME_LEFT = "pl-[188px]";
 
 function ToolHeader({
   tool,
@@ -147,7 +148,8 @@ function Shell() {
   const mode = settings.sidebar;
   const auto = useAutoHide(mode === "autohide");
 
-  const select = useCallback(
+  const [history, setHistory] = useState(() => startHistory(activeId));
+  const open = useCallback(
     (id: string | null) => {
       setActiveId(id);
       if (id) markUsed(id);
@@ -155,6 +157,24 @@ function Shell() {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [setActiveId, markUsed],
+  );
+  const select = useCallback(
+    (id: string | null) => {
+      setHistory((h) => visit(h, id));
+      open(id);
+    },
+    [open],
+  );
+  /** ⌘[ / ⌘] and the ‹ › buttons: move through history without adding to it. */
+  const go = useCallback(
+    (delta: -1 | 1) => {
+      const next = step(history, delta);
+      if (!next) return;
+      setHistory(next);
+      setPaletteOpen(false);
+      open(next.entries[next.index]);
+    },
+    [history, open],
   );
 
   const toggleSidebar = useCallback(() => update({ sidebar: toggledSidebar(mode) }), [update, mode]);
@@ -250,10 +270,18 @@ function Shell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [activeId, toggleFavorite, toggleSidebar, openSettings, favTools, select]);
 
-  // Ctrl+Tab / Ctrl+Shift+Tab cycle through the favorites like browser tabs. Capture phase, so an editor
-  // that handles Tab can't swallow it first.
+  // Navigation keys, in the capture phase so an editor can't take them first (tools focus their editor on open,
+  // and CodeMirror would indent on ⌘[ / ⌘]; Tab / Shift+Tab still indent there).
+  // ⌘[ / ⌘] = back / forward; Ctrl+Tab / Ctrl+Shift+Tab cycle the favorites like browser tabs.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const back = historyKey(e);
+      if (back !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        go(back);
+        return;
+      }
       const dir = tabCycleDirection(e);
       if (dir === null) return;
       const next = cycleFavorite(
@@ -269,7 +297,7 @@ function Shell() {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [favTools, activeId, select]);
+  }, [favTools, activeId, select, go]);
 
   const sidebar = (
     <Sidebar
@@ -302,15 +330,24 @@ function Shell() {
         </>
       )}
 
-      {/* Sits right of the traffic lights in every mode, like Finder or Notes. */}
-      <Button
-        variant="ghost"
-        icon={PanelLeft}
-        label={mode === "shown" ? "Hide sidebar (⌃⌘S)" : "Show sidebar (⌃⌘S)"}
-        className="fixed top-[12px] left-[80px] z-[45]"
-        onClick={toggleSidebar}
-        onMouseEnter={mode === "autohide" ? auto.show : undefined}
-      />
+      {/* Sit right of the traffic lights in every mode, like Finder or Safari. */}
+      <div className="fixed top-[12px] left-[80px] z-[45] flex items-center">
+        <Button
+          variant="ghost"
+          icon={PanelLeft}
+          label={mode === "shown" ? "Hide sidebar (⌃⌘S)" : "Show sidebar (⌃⌘S)"}
+          onClick={toggleSidebar}
+          onMouseEnter={mode === "autohide" ? auto.show : undefined}
+        />
+        <Button variant="ghost" icon={ChevronLeft} label="Back (⌘[)" disabled={history.index === 0} onClick={() => go(-1)} />
+        <Button
+          variant="ghost"
+          icon={ChevronRight}
+          label="Forward (⌘])"
+          disabled={history.index === history.entries.length - 1}
+          onClick={() => go(1)}
+        />
+      </div>
 
       <main className="flex-1 min-w-0 flex flex-col">
         <ToolHeader

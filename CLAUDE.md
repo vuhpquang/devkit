@@ -74,7 +74,9 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   (pointer events, not HTML5 DnD) or ⌥↑ / ⌥↓ / Move Up·Down; `moveIdBefore` in `prefs.tsx` is the pure model.
   ⌘0 = All tools, ⌘1…⌘9 = the first nine favorites; pressing ⌘ shows the numbers at once (hidden again by any other
   chord) on "All tools", the sidebar favorites and Home cards. Ctrl+Tab / Ctrl+Shift+Tab cycle the favorites like
-  browser tabs (capture-phase listener, so editors can't eat it). `favorites.ts`: `useFavoriteTools` (the one ordered
+  browser tabs; ⌘[ / ⌘] and the ‹ › buttons next to the sidebar toggle go back / forward through opened tools
+  (`history.ts`, 50 entries). These navigation keys use a capture-phase listener so the focused editor can't take
+  them (CodeMirror would indent on ⌘[ / ⌘]; Tab / Shift+Tab still indent). `favorites.ts`: `useFavoriteTools` (the one ordered
   list all of these use), `useCmdHeld`, `numberShortcut`, `cycleFavorite`, `tabCycleDirection`.
   macOS has a case-insensitive disk: `favorites.ts`'s tests are `favoriteShortcuts.test.tsx`, not `favorites.test.tsx`
   (that name is `Favorites.test.tsx`).
