@@ -67,8 +67,10 @@ semibold; descriptions `--text-muted`. Shortcut hints as small key caps.
 
 - `src/app/Sidebar.tsx` — search (⌘K), "All tools" with count, grouped tool rows with line icons,
   selected row on `--accent-soft`, footer: app name + System/Light/Dark segmented + settings.
-- `src/app/Home.tsx` — header, pin hint (⌘D), grouped tool cards (icon tile, name, two-line
-  description), "Find a tool" button.
+- `src/app/Home.tsx` — header, pin hint (⌘D), Favorites grid first, grouped tool cards (icon tile, name,
+  two-line description, star top-right: filled amber on favorites, outline on hover otherwise), "Find a tool" button.
+- Favorites in the sidebar: a section above the categories; each row shows a star on hover (replacing the
+  online globe). Dragging a favorite dims it and shows a 2 px amber drop line where it will land.
 - **Building blocks — every tool uses only `src/lib/ui`:** `TransformTool` (live input → output with
   modes), `EditorPane` (CodeMirror 6 + Paste/Clear/Copy + status line), `LookupBar` (online tools,
   Enter runs), `Panel`, `KeyValueList`, `Segmented`, `Toggle`, `Switch`, `Button`, `EmptyState`,

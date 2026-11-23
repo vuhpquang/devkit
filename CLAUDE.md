@@ -64,7 +64,10 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   Local tools update as you type; only online tools have a submit button.
 - `ToolDef` needs `description` and a lucide `icon`; they show in the header, home grid, sidebar and ⌘K.
 - Shell: `src/app/` — Sidebar (search, Favorites, categories; modes Shown / Hidden / Auto-hide, toggle ⌃⌘S),
-  Home grid, ⌘K palette (arrows, recent; hidden tools still found), ⌘D toggles favorite.
+  Home grid, ⌘K palette (arrows; Favorites, then Recent, then the rest; hidden tools still found), ⌘D toggles
+  favorite. Favorites (`devkit.favorites`, ordered): hover star on every sidebar row and Home card, native right-click
+  menu (`toolMenu.ts`, Tauri `Menu.popup`; the browser keeps its own menu), reorder in the sidebar by dragging
+  (pointer events, not HTML5 DnD) or ⌥↑ / ⌥↓ / Move Up·Down; `moveIdBefore` in `prefs.tsx` is the pure model.
 - Settings (⌘,) is a sheet in the window (`SettingsView.tsx`), panes in app-shell order: General, Tools
   (show/hide each tool, online tools off = no network), Editor (font size, wrap, line numbers → `EditorDefaults`
   context in `lib/ui`), Updates, About. Model + validation: `settings.ts` (`parseSettings` drops bad fields).

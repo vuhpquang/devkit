@@ -1,28 +1,54 @@
 import { Search, Star, WifiOff } from "lucide-react";
 import { tools, CATEGORY_ORDER } from "../tools/registry";
 import type { ToolDef } from "../tools/types";
-import { Button, IconTile, Kbd, OnlineBadge } from "../lib/ui";
+import { Button, cx, IconTile, Kbd, OnlineBadge } from "../lib/ui";
 import { usePrefs } from "./prefs";
+import { openToolMenu } from "./toolMenu";
 import { isToolVisible, useSettings } from "./settings";
 
 function ToolCard({ tool, onSelect }: { tool: ToolDef; onSelect: (id: string) => void }) {
-  const { favorites } = usePrefs();
+  const { favorites, toggleFavorite } = usePrefs();
+  const favorite = favorites.includes(tool.id);
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(tool.id)}
-      className="group text-left flex gap-3 p-3.5 rounded-xl bg-surface border border-line transition-[border-color,box-shadow,transform] duration-150 hover:border-accent/50 hover:shadow-[0_4px_16px_rgb(0_0_0/0.07)] hover:-translate-y-px active:translate-y-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
+    <div
+      className="group relative"
+      onContextMenu={(e) =>
+        openToolMenu(e, { favorite }, (action) => {
+          if (action === "open") onSelect(tool.id);
+          else if (action === "toggle-favorite") toggleFavorite(tool.id);
+        })
+      }
     >
-      <IconTile icon={tool.icon} size={36} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-md font-semibold text-fg truncate">{tool.name}</span>
-          {favorites.includes(tool.id) && <Star size={12} className="text-accent fill-accent shrink-0" aria-label="Favorite" />}
-          {tool.online && <OnlineBadge />}
+      <button
+        type="button"
+        onClick={() => onSelect(tool.id)}
+        className="w-full h-full text-left flex gap-3 p-3.5 pr-9 rounded-xl bg-surface border border-line transition-[border-color,box-shadow,transform] duration-150 group-hover:border-accent/50 group-hover:shadow-[0_4px_16px_rgb(0_0_0/0.07)] group-hover:-translate-y-px active:translate-y-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
+      >
+        <IconTile icon={tool.icon} size={36} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-md font-semibold text-fg truncate">{tool.name}</span>
+            {tool.online && <OnlineBadge />}
+          </div>
+          <p className="text-sm text-fg-muted mt-0.5 line-clamp-2">{tool.description}</p>
         </div>
-        <p className="text-sm text-fg-muted mt-0.5 line-clamp-2">{tool.description}</p>
-      </div>
-    </button>
+      </button>
+      {/* Mouse shortcut; keyboard users have ⌘D on the open tool and the context menu. */}
+      <button
+        type="button"
+        tabIndex={-1}
+        title={favorite ? "Remove from favorites" : "Add to favorites"}
+        aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+        aria-pressed={favorite}
+        onClick={() => toggleFavorite(tool.id)}
+        className={cx(
+          "absolute top-2.5 right-2.5 grid place-items-center w-6 h-6 rounded-sm transition-[opacity,transform] duration-150 group-hover:-translate-y-px",
+          favorite ? "text-accent" : "text-fg-faint hover:text-fg opacity-0 group-hover:opacity-100",
+        )}
+      >
+        <Star size={14} className={favorite ? "fill-accent" : undefined} aria-hidden />
+      </button>
+    </div>
   );
 }
 
@@ -79,7 +105,7 @@ export function Home({ onSelect, onSearch }: { onSelect: (id: string) => void; o
         <Grid title="Favorites" list={favTools} onSelect={onSelect} />
         {favTools.length === 0 && (
           <p className="mb-7 -mt-2 text-sm text-fg-faint flex items-center gap-1.5">
-            <Star size={13} aria-hidden /> Open a tool and press the star (or <Kbd>⌘D</Kbd>) to pin it here and in the sidebar.
+            <Star size={13} aria-hidden /> Click the star on a tool (or press <Kbd>⌘D</Kbd> in it) to pin it here and in the sidebar.
           </p>
         )}
         {CATEGORY_ORDER.map((cat) => (

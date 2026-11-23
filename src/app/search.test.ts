@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { searchTools, matchScore } from "./search";
-import { toggleId, pushRecent, loadIds } from "./prefs";
+import { toggleId, pushRecent, loadIds, moveIdBefore } from "./prefs";
 import { tools, getToolById } from "../tools/registry";
 
 describe("searchTools", () => {
@@ -36,6 +36,17 @@ describe("prefs helpers", () => {
   it("toggles ids", () => {
     expect(toggleId(["a"], "b")).toEqual(["a", "b"]);
     expect(toggleId(["a", "b"], "a")).toEqual(["b"]);
+  });
+
+  it("moves an id before another one, or to the end", () => {
+    expect(moveIdBefore(["a", "b", "c"], "c", "a")).toEqual(["c", "a", "b"]);
+    expect(moveIdBefore(["a", "b", "c"], "a", "c")).toEqual(["b", "a", "c"]);
+    expect(moveIdBefore(["a", "b", "c"], "a", null)).toEqual(["b", "c", "a"]);
+    // Unknown id, or dropped on itself: unchanged.
+    expect(moveIdBefore(["a", "b"], "x", "a")).toEqual(["a", "b"]);
+    expect(moveIdBefore(["a", "b"], "a", "a")).toEqual(["a", "b"]);
+    // An unknown target puts it at the end.
+    expect(moveIdBefore(["a", "b", "c"], "a", "zz")).toEqual(["b", "c", "a"]);
   });
 
   it("keeps recent ids unique, newest first, capped", () => {

@@ -15,8 +15,8 @@ interface Props {
 
 type Row = { kind: "heading"; label: string } | { kind: "tool"; tool: ToolDef; index: number };
 
-/** Builds the visible rows: recent first when there's no query, ranked results otherwise. */
-function buildRows(query: string, recentIds: string[], settings: Settings): { rows: Row[]; items: ToolDef[] } {
+/** Builds the visible rows: favorites, then recent, then the rest when there's no query; ranked results otherwise. */
+export function buildRows(query: string, favoriteIds: string[], recentIds: string[], settings: Settings): { rows: Row[]; items: ToolDef[] } {
   const pool = tools.filter((t) => isToolSearchable(t, settings));
   const rows: Row[] = [];
   const items: ToolDef[] = [];
@@ -31,9 +31,13 @@ function buildRows(query: string, recentIds: string[], settings: Settings): { ro
   if (query.trim()) {
     add("Tools", searchTools(pool, query));
   } else {
-    const recent = recentIds.map((id) => pool.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+    const pick = (ids: string[]) => ids.map((id) => pool.find((t) => t.id === id)).filter((t): t is ToolDef => !!t);
+    const favorites = pick(favoriteIds);
+    const recent = pick(recentIds).filter((t) => !favorites.includes(t));
+    add("Favorites", favorites);
     add("Recent", recent);
-    add(recent.length ? "All tools" : "Tools", pool.filter((t) => !recent.includes(t)));
+    const rest = pool.filter((t) => !favorites.includes(t) && !recent.includes(t));
+    add(favorites.length || recent.length ? "All tools" : "Tools", rest);
   }
   return { rows, items };
 }
@@ -44,12 +48,12 @@ export function CommandPalette({ open, onClose, onSelect }: Props) {
 }
 
 function PaletteBody({ onClose, onSelect }: Omit<Props, "open">) {
-  const { recent } = usePrefs();
+  const { favorites, recent } = usePrefs();
   const { settings } = useSettings();
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const { rows, items } = useMemo(() => buildRows(q, recent, settings), [q, recent, settings]);
+  const { rows, items } = useMemo(() => buildRows(q, favorites, recent, settings), [q, favorites, recent, settings]);
 
   useEffect(() => setActive(0), [q]);
   useEffect(() => {

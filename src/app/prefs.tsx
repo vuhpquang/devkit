@@ -10,6 +10,14 @@ export function toggleId(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 }
 
+/** Moves `id` so it sits right before `beforeId`; `null` (or an id not in the list) = the end. */
+export function moveIdBefore(list: string[], id: string, beforeId: string | null): string[] {
+  if (!list.includes(id) || id === beforeId) return list;
+  const rest = list.filter((x) => x !== id);
+  const at = beforeId === null ? -1 : rest.indexOf(beforeId);
+  return at < 0 ? [...rest, id] : [...rest.slice(0, at), id, ...rest.slice(at)];
+}
+
 /** Moves `id` to the front, keeping at most `max` entries. */
 export function pushRecent(list: string[], id: string, max = RECENT_MAX): string[] {
   return [id, ...list.filter((x) => x !== id)].slice(0, max);
@@ -38,11 +46,18 @@ function save(key: string, ids: string[]) {
 interface Prefs {
   favorites: string[];
   toggleFavorite: (id: string) => void;
+  /** Reorders favorites: `id` goes right before `beforeId` (`null` = last). */
+  moveFavorite: (id: string, beforeId: string | null) => void;
   recent: string[];
   markUsed: (id: string) => void;
 }
 
-const Ctx = createContext<Prefs>({ favorites: [], toggleFavorite: () => {}, recent: [], markUsed: () => {} });
+const Ctx = createContext<Prefs>({
+  favorites: [],
+  toggleFavorite: () => {},
+  moveFavorite: () => {},
+  recent: [], markUsed: () => {},
+});
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState(() => loadIds(FAVORITES_KEY));
@@ -56,6 +71,14 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const moveFavorite = useCallback((id: string, beforeId: string | null) => {
+    setFavorites((prev) => {
+      const next = moveIdBefore(prev, id, beforeId);
+      if (next !== prev) save(FAVORITES_KEY, next);
+      return next;
+    });
+  }, []);
+
   const markUsed = useCallback((id: string) => {
     setRecent((prev) => {
       const next = pushRecent(prev, id);
@@ -64,7 +87,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  return <Ctx.Provider value={{ favorites, toggleFavorite, recent, markUsed }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ favorites, toggleFavorite, moveFavorite, recent, markUsed }}>{children}</Ctx.Provider>;
 }
 
 export const usePrefs = () => useContext(Ctx);
