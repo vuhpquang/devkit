@@ -43,12 +43,24 @@ describe("settings", () => {
   it("keeps valid values and repairs bad ones", () => {
     const s = parseSettings(JSON.stringify({ base: BASE, days: 999, auto: 7, tab: "mrs", mrs: { role: "reviewer", sortDir: 3 } }));
     expect(s.base).toBe(BASE);
-    expect(s.days).toBe(30);
-    expect(s.auto).toBe(0);
+    expect(s.pipelines.days).toBe(30);
+    expect(s.mrs.auto).toBe(0);
     expect(s.tab).toBe("mrs");
     expect(s.mrs.role).toBe("reviewer");
     expect(s.mrs.sortDir).toBe(-1);
     expect(parseSettings("{nope").tab).toBe("pipelines");
+  });
+
+  it("keeps Days and Auto refresh per tab", () => {
+    const s = parseSettings(JSON.stringify({ pipelines: { days: 3, auto: 60 }, mrs: { days: 90, auto: 300 } }));
+    expect([s.pipelines.days, s.pipelines.auto]).toEqual([3, 60]);
+    expect([s.mrs.days, s.mrs.auto]).toEqual([90, 300]);
+  });
+
+  it("seeds both tabs from the old shared Days and Auto refresh", () => {
+    const s = parseSettings(JSON.stringify({ days: 10, auto: 60, mrs: { days: 45 } }));
+    expect([s.pipelines.days, s.pipelines.auto]).toEqual([10, 60]);
+    expect([s.mrs.days, s.mrs.auto]).toEqual([45, 60]);
   });
 
   it("needs a URL, a token and a username", () => {

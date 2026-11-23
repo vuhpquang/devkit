@@ -13,13 +13,18 @@ export interface GitLabSettings {
   token: string;
   user: string;
   group: string;
+  tab: Tab;
+  collapsed: boolean;
+  pipelines: TabWindow & { mode: ScanMode; q: string; status: string | null; sortKey: string; sortDir: SortDir };
+  mrs: TabWindow & { role: Role; mstate: MrStateFilter; q: string; state: string | null; sortKey: string; sortDir: SortDir };
+}
+
+/** Each tab has its own time window and refresh rate (pipelines are usually days, MRs weeks). */
+export interface TabWindow {
+  /** How far back to look, 1–365. */
   days: number;
   /** Auto refresh in seconds; 0 = off. */
   auto: number;
-  tab: Tab;
-  collapsed: boolean;
-  pipelines: { mode: ScanMode; q: string; status: string | null; sortKey: string; sortDir: SortDir };
-  mrs: { role: Role; mstate: MrStateFilter; q: string; state: string | null; sortKey: string; sortDir: SortDir };
 }
 
 export const DEFAULT_SETTINGS: GitLabSettings = {
@@ -27,12 +32,10 @@ export const DEFAULT_SETTINGS: GitLabSettings = {
   token: "",
   user: "",
   group: "",
-  days: 30,
-  auto: 0,
   tab: "pipelines",
   collapsed: false,
-  pipelines: { mode: "fast", q: "", status: null, sortKey: "created_at", sortDir: -1 },
-  mrs: { role: "all", mstate: "all", q: "", state: null, sortKey: "updated_at", sortDir: -1 },
+  pipelines: { days: 30, auto: 0, mode: "fast", q: "", status: null, sortKey: "created_at", sortDir: -1 },
+  mrs: { days: 30, auto: 0, role: "all", mstate: "all", q: "", state: null, sortKey: "updated_at", sortDir: -1 },
 };
 
 export const AUTO_REFRESH = [0, 60, 180, 300] as const;
@@ -53,8 +56,11 @@ export function parseSettings(raw: string | null): GitLabSettings {
   const obj = (x: unknown): Record<string, unknown> => (x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, unknown>) : {});
   const dir = (x: unknown, def: SortDir): SortDir => (x === 1 || x === -1 ? x : def);
   const nullableStr = (x: unknown) => (typeof x === "string" ? x : null);
-  const days = typeof v.days === "number" && v.days >= 1 && v.days <= 365 ? Math.floor(v.days) : d.days;
-  const auto = typeof v.auto === "number" && (AUTO_REFRESH as readonly number[]).includes(v.auto) ? v.auto : d.auto;
+  const validDays = (x: unknown) => (typeof x === "number" && x >= 1 && x <= 365 ? Math.floor(x) : undefined);
+  const validAuto = (x: unknown) => (typeof x === "number" && (AUTO_REFRESH as readonly number[]).includes(x) ? x : undefined);
+  // Before 0.6 Days and Auto refresh were shared by both tabs (top-level `days` / `auto`): they seed each tab.
+  const days = (x: unknown, def: number) => validDays(x) ?? validDays(v.days) ?? def;
+  const auto = (x: unknown, def: number) => validAuto(x) ?? validAuto(v.auto) ?? def;
   const p = obj(v.pipelines);
   const m = obj(v.mrs);
   return {
@@ -62,11 +68,11 @@ export function parseSettings(raw: string | null): GitLabSettings {
     token: str(v.token, d.token),
     user: str(v.user, d.user),
     group: str(v.group, d.group),
-    days,
-    auto,
     tab: oneOf(v.tab, ["pipelines", "mrs"], d.tab),
     collapsed: typeof v.collapsed === "boolean" ? v.collapsed : d.collapsed,
     pipelines: {
+      days: days(p.days, d.pipelines.days),
+      auto: auto(p.auto, d.pipelines.auto),
       mode: oneOf(p.mode, ["fast", "full"], d.pipelines.mode),
       q: str(p.q, ""),
       status: nullableStr(p.status),
@@ -74,6 +80,8 @@ export function parseSettings(raw: string | null): GitLabSettings {
       sortDir: dir(p.sortDir, d.pipelines.sortDir),
     },
     mrs: {
+      days: days(m.days, d.mrs.days),
+      auto: auto(m.auto, d.mrs.auto),
       role: oneOf(m.role, ["all", "author", "assignee", "reviewer"], d.mrs.role),
       mstate: oneOf(m.mstate, ["all", "opened", "merged", "closed", "conflict"], d.mrs.mstate),
       q: str(m.q, ""),

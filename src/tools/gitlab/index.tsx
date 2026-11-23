@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GitMerge, PlugZap, RefreshCw, Settings2 } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, EmptyState, Field, Panel, Segmented, Select, Spinner, TextInput, ToolBar, ToolPage, cx } from "../../lib/ui";
-import { createClient, isConfigured, normalizeBase, parseSettings, type GitLabSettings, type MrStateFilter, type Role, type ScanMode, type Tab } from "./logic";
+import { createClient, isConfigured, normalizeBase, parseSettings, type GitLabSettings, type MrStateFilter, type Role, type ScanMode, type Tab, type TabWindow } from "./logic";
 import { SETTINGS_KEY, browserFetch, loadCache } from "./parts";
 import { Pipelines } from "./Pipelines";
 import { MergeRequests } from "./MergeRequests";
@@ -51,14 +51,17 @@ function GitLab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.tab]);
 
-  // Auto refresh the open tab.
-  useEffect(() => {
-    if (!s.auto || !configured) return;
-    const id = setInterval(() => load(s.tab), s.auto * 1000);
-    return () => clearInterval(id);
-  }, [s.auto, s.tab, configured, load]);
+  // Days and Auto refresh belong to the open tab.
+  const win = s.tab === "pipelines" ? s.pipelines : s.mrs;
+  const patchWin = (p: Partial<TabWindow>) =>
+    setS((prev) => (prev.tab === "pipelines" ? { ...prev, pipelines: { ...prev.pipelines, ...p } } : { ...prev, mrs: { ...prev.mrs, ...p } }));
 
-  const conn = { user: s.user, days: s.days, group: s.group };
+  // Auto refresh the open tab at its own rate.
+  useEffect(() => {
+    if (!win.auto || !configured) return;
+    const id = setInterval(() => load(s.tab), win.auto * 1000);
+    return () => clearInterval(id);
+  }, [win.auto, s.tab, configured, load]);
   const baseInvalid = s.base.trim() !== "" && !normalizeBase(s.base);
 
   return (
@@ -127,8 +130,8 @@ function GitLab() {
                 type="number"
                 min={1}
                 max={365}
-                value={s.days}
-                onChange={(e) => patch({ days: Math.min(365, Math.max(1, Math.floor(Number(e.target.value)) || 30)) })}
+                value={win.days}
+                onChange={(e) => patchWin({ days: Math.min(365, Math.max(1, Math.floor(Number(e.target.value)) || 30)) })}
                 className="w-20 text-right tabular-nums"
               />
             </Field>
@@ -182,7 +185,7 @@ function GitLab() {
               </>
             )}
             <Field label="Auto refresh">
-              <Select aria-label="Auto refresh" value={s.auto} onChange={(e) => patch({ auto: Number(e.target.value) })} className="w-28">
+              <Select aria-label="Auto refresh" value={win.auto} onChange={(e) => patchWin({ auto: Number(e.target.value) })} className="w-28">
                 <option value={0}>Off</option>
                 <option value={60}>1 minute</option>
                 <option value={180}>3 minutes</option>
@@ -208,7 +211,7 @@ function GitLab() {
       ) : s.tab === "pipelines" ? (
         <Pipelines
           client={client}
-          conn={conn}
+          conn={{ user: s.user, group: s.group, days: s.pipelines.days }}
           prefs={s.pipelines}
           onPrefs={(p) => setS((prev) => ({ ...prev, pipelines: { ...prev.pipelines, ...p } }))}
           runToken={runs.pipelines}
@@ -218,7 +221,7 @@ function GitLab() {
       ) : (
         <MergeRequests
           client={client}
-          conn={conn}
+          conn={{ user: s.user, group: s.group, days: s.mrs.days }}
           prefs={s.mrs}
           onPrefs={(p) => setS((prev) => ({ ...prev, mrs: { ...prev.mrs, ...p } }))}
           runToken={runs.mrs}

@@ -36,7 +36,8 @@ export function MergeRequests({
   cache,
 }: {
   client: Client;
-  conn: Pick<GitLabSettings, "user" | "days" | "group">;
+  /** Connection plus this tab's own time window. */
+  conn: Pick<GitLabSettings, "user" | "group"> & { days: number };
   prefs: Prefs;
   onPrefs: (p: Partial<Prefs>) => void;
   runToken: number;

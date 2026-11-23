@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { tool } from "./index";
 
@@ -25,6 +25,22 @@ describe("GitLab tool", () => {
     expect(screen.getByLabelText("Role")).toBeInTheDocument();
     expect(screen.queryByLabelText("Scan")).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("devkit.gitlab")!).tab).toBe("mrs");
+  });
+
+  it("keeps Days and Auto refresh separate for each tab", async () => {
+    const C = tool.component;
+    render(<C />);
+    const days = () => screen.getByRole("spinbutton", { name: "Days" });
+    fireEvent.change(days(), { target: { value: "7" } });
+    await userEvent.selectOptions(screen.getByLabelText("Auto refresh"), "60");
+    await userEvent.click(screen.getByRole("radio", { name: "Merge requests" }));
+    expect(days()).toHaveValue(30);
+    expect(screen.getByLabelText("Auto refresh")).toHaveValue("0");
+    await userEvent.click(screen.getByRole("radio", { name: "Pipelines" }));
+    expect(days()).toHaveValue(7);
+    expect(screen.getByLabelText("Auto refresh")).toHaveValue("60");
+    const saved = JSON.parse(localStorage.getItem("devkit.gitlab")!);
+    expect([saved.pipelines.days, saved.pipelines.auto, saved.mrs.days, saved.mrs.auto]).toEqual([7, 60, 30, 0]);
   });
 
   it("loads merge requests with the token as a query parameter", async () => {
