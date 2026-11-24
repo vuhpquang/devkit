@@ -39,6 +39,18 @@ describe("Settings", () => {
     expect([saved.globalShortcut, saved.clipboardSuggestions]).toEqual([false, false]);
   });
 
+  it("Remember tool input is on by default; turning it off forgets every tool's saved input", async () => {
+    localStorage.setItem("devkit.input.base64.input", '"secret"');
+    localStorage.setItem("devkit.input.json-diff.docs", "{}");
+    render(<Harness />);
+    const remember = screen.getByRole("switch", { name: "Remember tool input" });
+    expect(remember).toHaveAttribute("aria-checked", "true");
+    expect(localStorage.getItem("devkit.input.base64.input")).toBe('"secret"');
+    await userEvent.click(remember);
+    expect(JSON.parse(localStorage.getItem("devkit.settings")!).rememberInput).toBe(false);
+    expect(Object.keys(localStorage).filter((k) => k.startsWith("devkit.input."))).toEqual([]);
+  });
+
   it("hiding a tool removes it from the sidebar and persists", async () => {
     render(<Harness initial="tools" />);
     const nav = screen.getByRole("navigation", { name: "Tools" });

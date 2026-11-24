@@ -1,9 +1,10 @@
-import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import { useDeferredValue, useMemo, type ReactNode } from "react";
 import { ArrowLeftRight, FileText, WrapText } from "lucide-react";
 import { Button, Segmented } from "./primitives";
 import { EditorPane, Split, ToolBar, ToolBarDivider, ToolPage, type Status } from "./layout";
 import { useEditorDefaults, type Lang } from "./CodeEditor";
 import { useHandoffText } from "../toolActive";
+import { useSaved } from "../saved";
 
 export type TransformResult = { ok: true; value: string } | { ok: false; error: string };
 
@@ -44,13 +45,14 @@ export function TransformTool<M extends string>({
   wrapByDefault?: boolean;
 }) {
   const handoff = useHandoffText();
-  const [modeValue, setMode] = useState<M>(() => {
-    const wanted = modes.find((m) => m.value === handoff?.mode);
-    return wanted ? wanted.value : (initialMode ?? modes[0].value);
+  // Mode, input and wrap are saved per tool and come back after a relaunch; a hand-off wins over them.
+  const [modeValue, setMode] = useSaved<M>("mode", initialMode ?? modes[0].value, {
+    valid: (v) => modes.some((m) => m.value === v),
+    prefer: modes.find((m) => m.value === handoff?.mode)?.value,
   });
-  const [input, setInput] = useState(handoff?.text ?? "");
+  const [input, setInput] = useSaved("input", "", { prefer: handoff?.text });
   const defaults = useEditorDefaults();
-  const [wrap, setWrap] = useState(wrapByDefault || defaults.wrap);
+  const [wrap, setWrap] = useSaved("wrap", wrapByDefault || defaults.wrap);
   const mode = modes.find((m) => m.value === modeValue) ?? modes[0];
   const deferred = useDeferredValue(input);
 

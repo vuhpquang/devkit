@@ -1,10 +1,11 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { FileText, KeyRound, ShieldCheck } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, Button, EditorPane, EmptyState, KeyValueList, Notice, Panel, Split, ToolBar, ToolPage } from "../../lib/ui";
 import { relativeTime } from "../timestamp/logic";
 import { decodeJwt, timeClaims } from "./logic";
 import { useHandoffText } from "../../lib/toolActive";
+import { useSaved } from "../../lib/saved";
 
 const SAMPLE =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkRldktpdCBVc2VyIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzAwMDAwMDAwLCJleHAiOjQxMDI0NDQ4MDB9.dGhpcy1pcy1ub3QtYS1yZWFsLXNpZ25hdHVyZQ";
@@ -18,7 +19,7 @@ const STATE = {
 
 function JwtDecode() {
   const handoff = useHandoffText();
-  const [token, setToken] = useState(handoff?.text.trim() ?? "");
+  const [token, setToken] = useSaved("token", "", { prefer: handoff?.text.trim() });
   const deferred = useDeferredValue(token);
   const result = useMemo(() => (deferred.trim() ? decodeJwt(deferred) : null), [deferred]);
   const header = result?.ok ? JSON.stringify(result.header, null, 2) : "";

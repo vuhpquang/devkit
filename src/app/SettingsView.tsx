@@ -129,6 +129,11 @@ function GeneralPane() {
           />
         </Row>
       </Section>
+      <Section title="Tool input" footer="Saved on this Mac only, in DevKit's own storage. Opened image files are not kept, only their options.">
+        <Row label="Remember tool input" hint="Every tool keeps what you typed, picked or switched on after DevKit quits. Turning this off forgets it all.">
+          <Switch label="Remember tool input" checked={settings.rememberInput} onChange={(rememberInput) => update({ rememberInput })} />
+        </Row>
+      </Section>
       <Section>
         <Row label="Reset all settings" hint="Theme, favorites and recent tools are kept.">
           <Button size="sm" onClick={reset}>

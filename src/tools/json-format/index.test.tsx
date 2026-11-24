@@ -80,7 +80,7 @@ describe("JSON Format", () => {
       live()[0].content = { text: '{"kept":true' };
       (live()[0].props.onChange as (c: unknown) => void)(live()[0].content);
     });
-    expect(JSON.parse(localStorage.getItem("devkit.jsonFormat.doc")!)).toEqual({ text: '{"kept":true', name: null });
+    expect(JSON.parse(localStorage.getItem("devkit.input.json-format.doc")!)).toEqual({ text: '{"kept":true', name: null });
     unmount();
 
     render(<C />);
@@ -91,11 +91,11 @@ describe("JSON Format", () => {
     const C = tool.component;
     const { unmount } = render(<C />);
     await userEvent.click(screen.getByRole("button", { name: "Sample" }));
-    expect(localStorage.getItem("devkit.jsonFormat.doc")).toContain("devkit");
+    expect(localStorage.getItem("devkit.input.json-format.doc")).toContain("devkit");
     unmount();
 
     handoff.takeHandoff.mockReturnValue({ kind: "text", text: '{"from":"diff"}' });
     render(<C />);
-    expect(JSON.parse(localStorage.getItem("devkit.jsonFormat.doc")!).text).toBe('{"from":"diff"}');
+    expect(JSON.parse(localStorage.getItem("devkit.input.json-format.doc")!).text).toBe('{"from":"diff"}');
   });
 });

@@ -40,11 +40,12 @@ import {
   type JsonDiff,
 } from "../../lib/jsoneditor/diff";
 import { takeHandoff } from "../../app/handoff";
+import { useRememberInput } from "../../lib/saved";
 
 type Side = "left" | "right";
 
 const SPLIT_KEY = "devkit.jsonEditor.split";
-const DOCS_KEY = "devkit.jsonDiff.docs";
+const DOCS_KEY = "devkit.input.json-diff.docs";
 const MIDDLE = 132;
 type View = "text" | "tree" | "table";
 const MODE: Record<View, Mode> = { text: Mode.text, tree: Mode.tree, table: Mode.table };
@@ -76,7 +77,8 @@ function isContent(v: unknown): v is EditorContent {
 const nameOf = (v: unknown) => (typeof v === "string" ? v : null);
 
 /** What both sides held the last time anything was typed, opened or copied, across app restarts. */
-export function loadDocs(): Docs {
+export function loadDocs(remember = true): Docs {
+  if (!remember) return memory;
   try {
     const raw = localStorage.getItem(DOCS_KEY);
     if (!raw) return memory;
@@ -95,8 +97,9 @@ export function loadDocs(): Docs {
 }
 
 /** Saves both sides. A document too large for localStorage drops the stored copy so a stale one never wins. */
-export function saveDocs(docs: Docs) {
+export function saveDocs(docs: Docs, remember = true) {
   memory = docs;
+  if (!remember) return;
   try {
     localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
   } catch {
@@ -191,11 +194,14 @@ const KIND: Record<Change["kind"], { text: string; tone: "accent" | "success" | 
 
 function JsonDiff() {
   const [error, setError] = useState<string | null>(null);
+  const remember = useRememberInput();
+  const rememberRef = useRef(remember);
+  rememberRef.current = remember;
   // Saved documents load once; a document handed over by JSON Format becomes the original.
   const initial = useRef<Docs | null>(null);
   const handedOver = useRef(false);
   if (!initial.current) {
-    const docs = loadDocs();
+    const docs = loadDocs(remember);
     const h = takeHandoff("json-diff");
     if (h?.kind === "text") {
       initial.current = { ...docs, left: { text: h.text }, names: { ...docs.names, left: null } };
@@ -215,7 +221,7 @@ function JsonDiff() {
   const persist = useCallback((nextNames?: Record<Side, string | null>, edited?: { side: Side; content: EditorContent }) => {
     if (!left.current || !right.current) return;
     const doc = (side: Side) => (edited?.side === side ? edited.content : (side === "left" ? left : right).current!.get());
-    saveDocs({ left: doc("left"), right: doc("right"), names: nextNames ?? namesRef.current, views: views.current, ...ui.current });
+    saveDocs({ left: doc("left"), right: doc("right"), names: nextNames ?? namesRef.current, views: views.current, ...ui.current }, rememberRef.current);
   }, []);
   const onChangeView = (side: Side) => (view: View) => {
     views.current = { ...views.current, [side]: view };

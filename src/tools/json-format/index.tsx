@@ -8,6 +8,7 @@ import { JsonEditorView, Mode, type EditorOptions, type JsonEditorHandle } from 
 import { openJsonFile, saveJsonFile } from "../../lib/jsoneditor/files";
 import type { EditorContent } from "../../lib/jsoneditor/diff";
 import { sendTo, takeHandoff } from "../../app/handoff";
+import { useRememberInput } from "../../lib/saved";
 
 const PREFS_KEY = "devkit.jsonFormat";
 
@@ -74,14 +75,15 @@ const SAMPLE_SCHEMA = `{
   }
 }`;
 
-const DOC_KEY = "devkit.jsonFormat.doc";
+const DOC_KEY = "devkit.input.json-format.doc";
 
 /** The document as last saved this session (fallback when localStorage can't hold it). */
 let lastDoc: EditorContent = { text: "" };
 let lastName: string | null = null;
 
 /** The document and its file name, as left the last time it changed — across app restarts. */
-export function loadDoc(): { doc: EditorContent; name: string | null } {
+export function loadDoc(remember = true): { doc: EditorContent; name: string | null } {
+  if (!remember) return { doc: lastDoc, name: lastName };
   try {
     const raw = localStorage.getItem(DOC_KEY);
     if (raw) {
@@ -95,9 +97,10 @@ export function loadDoc(): { doc: EditorContent; name: string | null } {
 }
 
 /** Stored as text (the editor's own stringify), so lossless big numbers survive. */
-function saveDoc(text: string, name: string | null) {
+function saveDoc(text: string, name: string | null, remember: boolean) {
   lastDoc = { text };
   lastName = name;
+  if (!remember) return;
   try {
     localStorage.setItem(DOC_KEY, JSON.stringify({ text, name }));
   } catch {
@@ -112,7 +115,10 @@ function saveDoc(text: string, name: string | null) {
 function JsonFormat() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const stored = useRef<ReturnType<typeof loadDoc> | null>(null);
-  stored.current ??= loadDoc();
+  const remember = useRememberInput();
+  const rememberRef = useRef(remember);
+  rememberRef.current = remember;
+  stored.current ??= loadDoc(remember);
   const [name, setName] = useState<string | null>(stored.current.name);
   const nameRef = useRef(name);
   nameRef.current = name;
@@ -158,7 +164,7 @@ function JsonFormat() {
 
   // Every edit, open, sample and save is written at once, so the document survives a restart.
   const persist = (nextName: string | null = nameRef.current) => {
-    if (editor.current) saveDoc(editor.current.getText(), nextName);
+    if (editor.current) saveDoc(editor.current.getText(), nextName, rememberRef.current);
   };
   useEffect(() => {
     if (handedOver.current) {

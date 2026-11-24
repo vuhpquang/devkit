@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { ToolDef } from "../tools/types";
 import { EditorDefaults } from "../lib/ui/CodeEditor";
+import { RememberInput, clearSavedInput } from "../lib/saved";
 
 /** How the sidebar behaves: always there, collapsed, or sliding in when the pointer reaches the left edge. */
 export type SidebarMode = "shown" | "hidden" | "autohide";
@@ -21,6 +22,8 @@ export interface Settings {
   clipboardSuggestions: boolean;
   /** ⌥Space opens the launcher from any app. */
   globalShortcut: boolean;
+  /** Every tool keeps its input across launches (`lib/saved.ts`). Off = nothing is saved, saved input is forgotten. */
+  rememberInput: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoCheckUpdates: true,
   clipboardSuggestions: true,
   globalShortcut: true,
+  rememberInput: true,
 };
 
 export const FONT_SIZES = [11, 12, 13, 14, 15, 16, 18] as const;
@@ -66,6 +70,7 @@ export function parseSettings(raw: string | null): Settings {
     autoCheckUpdates: bool(v.autoCheckUpdates, d.autoCheckUpdates),
     clipboardSuggestions: bool(v.clipboardSuggestions, d.clipboardSuggestions),
     globalShortcut: bool(v.globalShortcut, d.globalShortcut),
+    rememberInput: bool(v.rememberInput, d.rememberInput),
   };
 }
 
@@ -105,12 +110,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty("--editor-font-size", `${settings.editorFontSize}px`);
   }, [settings]);
 
+  useEffect(() => {
+    if (!settings.rememberInput) clearSavedInput();
+  }, [settings.rememberInput]);
+
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), []);
   const reset = useCallback(() => setSettings(DEFAULT_SETTINGS), []);
 
   return (
     <SettingsCtx.Provider value={{ settings, update, reset }}>
-      <EditorDefaults.Provider value={{ wrap: settings.wrapLines, lineNumbers: settings.lineNumbers }}>{children}</EditorDefaults.Provider>
+      <EditorDefaults.Provider value={{ wrap: settings.wrapLines, lineNumbers: settings.lineNumbers }}>
+        <RememberInput.Provider value={settings.rememberInput}>{children}</RememberInput.Provider>
+      </EditorDefaults.Provider>
     </SettingsCtx.Provider>
   );
 }

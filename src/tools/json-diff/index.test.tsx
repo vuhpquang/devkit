@@ -71,10 +71,10 @@ describe("JSON Diff", () => {
     const C = tool.component;
     const { unmount } = render(<C />);
     edit(0, { text: '{"a":1' });
-    let saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    let saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved.left).toEqual({ text: '{"a":1' });
     edit(1, { json: { b: 2 } });
-    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved.left).toEqual({ text: '{"a":1' });
     expect(saved.right).toEqual({ json: { b: 2 } });
     unmount();
@@ -88,13 +88,13 @@ describe("JSON Diff", () => {
     const C = tool.component;
     render(<C />);
     await userEvent.click(screen.getByRole("button", { name: "Sample" }));
-    let saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    let saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved.right.json.version).toBe("1.5.0");
     await userEvent.click(screen.getByRole("button", { name: "Swap sides" }));
-    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved.left.json.version).toBe("1.5.0");
     await userEvent.click(screen.getByRole("button", { name: "Copy original to modified" }));
-    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved.right).toEqual(saved.left);
   });
 
@@ -102,11 +102,11 @@ describe("JSON Diff", () => {
     handoff.takeHandoff.mockReturnValue({ kind: "text", text: '{"x":1}' });
     const C = tool.component;
     render(<C />);
-    expect(JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!).left).toEqual({ text: '{"x":1}' });
+    expect(JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!).left).toEqual({ text: '{"x":1}' });
   });
 
   it("ignores a damaged saved value", () => {
-    localStorage.setItem("devkit.jsonDiff.docs", '{"left":5,"right":{"text":"[1]"},"names":{"left":3}}');
+    localStorage.setItem("devkit.input.json-diff.docs", '{"left":5,"right":{"text":"[1]"},"names":{"left":3}}');
     const C = tool.component;
     render(<C />);
     expect(live()[0].content).toEqual({ json: {} });
@@ -118,7 +118,7 @@ describe("JSON Diff", () => {
     const { unmount } = render(<C />);
     act(() => (live()[0].props.onChangeMode as (m: string) => void)("text"));
     act(() => (live()[1].props.onChangeMode as (m: string) => void)("table"));
-    expect(JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!).views).toEqual({ left: "text", right: "table" });
+    expect(JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!).views).toEqual({ left: "text", right: "table" });
     unmount();
 
     render(<C />);
@@ -132,7 +132,7 @@ describe("JSON Diff", () => {
     await wait();
     await userEvent.click(screen.getByRole("button", { name: /Changes/ }));
     await userEvent.click(screen.getByRole("switch", { name: "Compare" }));
-    const saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    const saved = JSON.parse(localStorage.getItem("devkit.input.json-diff.docs")!);
     expect(saved).toMatchObject({ compare: false, listOpen: false });
     unmount();
 
