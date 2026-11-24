@@ -10,6 +10,13 @@ vi.mock("../../app/handoff", () => handoff);
 
 import { tool } from "./index";
 
+/** What typing does in a real editor: the content changes, then onChange fires with it. */
+const edit = (i: number, content: unknown) =>
+  act(() => {
+    live()[i].content = content;
+    (live()[i].props.onChange as (c: unknown) => void)(content);
+  });
+
 const wait = () => act(() => new Promise((r) => setTimeout(r, 200)));
 
 describe("JSON Diff", () => {
@@ -58,5 +65,51 @@ describe("JSON Diff", () => {
     const C = tool.component;
     render(<C />);
     expect(live()[0].content).toEqual({ text: '{"x":1}' });
+  });
+
+  it("saves every edit on either side and brings both back after a relaunch", async () => {
+    const C = tool.component;
+    const { unmount } = render(<C />);
+    edit(0, { text: '{"a":1' });
+    let saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved.left).toEqual({ text: '{"a":1' });
+    edit(1, { json: { b: 2 } });
+    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved.left).toEqual({ text: '{"a":1' });
+    expect(saved.right).toEqual({ json: { b: 2 } });
+    unmount();
+
+    render(<C />);
+    expect(live()[0].content).toEqual({ text: '{"a":1' });
+    expect(live()[1].content).toEqual({ json: { b: 2 } });
+  });
+
+  it("saves what Sample, copy and swap put in the editors", async () => {
+    const C = tool.component;
+    render(<C />);
+    await userEvent.click(screen.getByRole("button", { name: "Sample" }));
+    let saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved.right.json.version).toBe("1.5.0");
+    await userEvent.click(screen.getByRole("button", { name: "Swap sides" }));
+    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved.left.json.version).toBe("1.5.0");
+    await userEvent.click(screen.getByRole("button", { name: "Copy original to modified" }));
+    saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved.right).toEqual(saved.left);
+  });
+
+  it("saves a handed-over document as the original", () => {
+    handoff.takeHandoff.mockReturnValue({ kind: "text", text: '{"x":1}' });
+    const C = tool.component;
+    render(<C />);
+    expect(JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!).left).toEqual({ text: '{"x":1}' });
+  });
+
+  it("ignores a damaged saved value", () => {
+    localStorage.setItem("devkit.jsonDiff.docs", '{"left":5,"right":{"text":"[1]"},"names":{"left":3}}');
+    const C = tool.component;
+    render(<C />);
+    expect(live()[0].content).toEqual({ json: {} });
+    expect(live()[1].content).toEqual({ text: "[1]" });
   });
 });

@@ -44,13 +44,59 @@ import { takeHandoff } from "../../app/handoff";
 type Side = "left" | "right";
 
 const SPLIT_KEY = "devkit.jsonEditor.split";
+const DOCS_KEY = "devkit.jsonDiff.docs";
 const MIDDLE = 132;
 /** Differences are highlighted in tree mode, so both editors start there (the menu switches any time). */
 const OPTIONS: EditorOptions = { mode: Mode.tree };
 
-/** Both documents survive switching to another tool and back. */
-const memory: Record<Side, EditorContent> = { left: { json: {} }, right: { json: {} } };
-const memoryNames: Record<Side, string | null> = { left: null, right: null };
+interface Docs {
+  left: EditorContent;
+  right: EditorContent;
+  names: Record<Side, string | null>;
+}
+
+const EMPTY: Docs = { left: { json: {} }, right: { json: {} }, names: { left: null, right: null } };
+
+/** Both documents, as last saved in this session (fallback when localStorage can't hold them). */
+let memory: Docs = EMPTY;
+
+function isContent(v: unknown): v is EditorContent {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return typeof o.text === "string" || "json" in o;
+}
+
+const nameOf = (v: unknown) => (typeof v === "string" ? v : null);
+
+/** What both sides held the last time anything was typed, opened or copied, across app restarts. */
+export function loadDocs(): Docs {
+  try {
+    const raw = localStorage.getItem(DOCS_KEY);
+    if (!raw) return memory;
+    const v = JSON.parse(raw) as Partial<Docs> & { names?: Partial<Record<Side, unknown>> };
+    return {
+      left: isContent(v.left) ? v.left : EMPTY.left,
+      right: isContent(v.right) ? v.right : EMPTY.right,
+      names: { left: nameOf(v.names?.left), right: nameOf(v.names?.right) },
+    };
+  } catch {
+    return memory;
+  }
+}
+
+/** Saves both sides. A document too large for localStorage drops the stored copy so a stale one never wins. */
+export function saveDocs(docs: Docs) {
+  memory = docs;
+  try {
+    localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+  } catch {
+    try {
+      localStorage.removeItem(DOCS_KEY);
+    } catch {
+      /* not remembered */
+    }
+  }
+}
 
 function loadRatio(): number {
   try {
@@ -79,7 +125,7 @@ function Pane({
   style?: React.CSSProperties;
   editorRef: React.Ref<JsonEditorHandle>;
   initial: EditorContent;
-  onChange: () => void;
+  onChange: (content: EditorContent) => void;
   onClassName?: OnClassName;
   onOpen: () => void;
   onSave: () => void;
@@ -129,27 +175,44 @@ const KIND: Record<Change["kind"], { text: string; tone: "accent" | "success" | 
 
 function JsonDiff() {
   const [error, setError] = useState<string | null>(null);
-  const [names, setNames] = useState<Record<Side, string | null>>({ ...memoryNames });
+  // Saved documents load once; a document handed over by JSON Format becomes the original.
+  const initial = useRef<Docs | null>(null);
+  const handedOver = useRef(false);
+  if (!initial.current) {
+    const docs = loadDocs();
+    const h = takeHandoff("json-diff");
+    if (h?.kind === "text") {
+      initial.current = { ...docs, left: { text: h.text }, names: { ...docs.names, left: null } };
+      handedOver.current = true;
+    } else initial.current = docs;
+  }
+  const [names, setNames] = useState<Record<Side, string | null>>(initial.current.names);
+  const namesRef = useRef(names);
+  namesRef.current = names;
   const left = useRef<JsonEditorHandle>(null);
   const right = useRef<JsonEditorHandle>(null);
   const editors: Record<Side, React.RefObject<JsonEditorHandle | null>> = { left, right };
 
-  // A document handed over by JSON Format becomes the original (once).
-  const initialLeft = useRef<EditorContent>(memory.left);
-  const handed = useRef(false);
-  if (!handed.current) {
-    handed.current = true;
-    const h = takeHandoff("json-diff");
-    if (h?.kind === "text") initialLeft.current = { text: h.text };
-  }
+  // Every edit, open, copy, swap and sample is saved at once, both sides, so nothing typed is lost.
+  const persist = useCallback((nextNames?: Record<Side, string | null>, edited?: { side: Side; content: EditorContent }) => {
+    if (!left.current || !right.current) return;
+    const doc = (side: Side) => (edited?.side === side ? edited.content : (side === "left" ? left : right).current!.get());
+    saveDocs({ left: doc("left"), right: doc("right"), names: nextNames ?? namesRef.current });
+  }, []);
+  const onEdit = (side: Side) => (content: EditorContent) => {
+    persist(undefined, { side, content });
+    scheduleCompare();
+  };
+  const setNamesAndSave = (next: Record<Side, string | null>) => {
+    namesRef.current = next;
+    setNames(next);
+    persist(next);
+  };
 
-  useEffect(
-    () => () => {
-      if (left.current) memory.left = left.current.get();
-      if (right.current) memory.right = right.current.get();
-    },
-    [],
-  );
+  useEffect(() => {
+    if (handedOver.current) persist();
+    return () => persist();
+  }, [persist]);
 
   // ---- compare state
   const [compareOn, setCompareOn] = useState(true);
@@ -219,10 +282,16 @@ function JsonDiff() {
   };
   const go = (delta: number) => diff && diff.list.length && goTo(step(current, delta, diff.list.length));
 
+  /** After the editors were changed from code (copy, swap, open, sample), which fires no onChange. */
+  const changed = () => {
+    persist();
+    scheduleCompare();
+  };
+
   const copy = (from: Side, to: Side) => {
     const c = editors[from].current?.get();
     if (c) editors[to].current?.set(c);
-    scheduleCompare();
+    changed();
   };
   const swap = () => {
     const a = left.current?.get();
@@ -230,9 +299,10 @@ function JsonDiff() {
     if (a && b) {
       left.current?.set(b);
       right.current?.set(a);
-      setNames((n) => ({ left: n.right, right: n.left }));
+      namesRef.current = { left: namesRef.current.right, right: namesRef.current.left };
+      setNames(namesRef.current);
     }
-    scheduleCompare();
+    changed();
   };
 
   // ---- files
@@ -242,9 +312,9 @@ function JsonDiff() {
       const file = await openJsonFile();
       if (!file) return;
       editors[side].current?.set({ text: file.text });
-      setNames((n) => ({ ...n, [side]: file.name }));
-      memoryNames[side] = file.name;
-      scheduleCompare();
+      namesRef.current = { ...namesRef.current, [side]: file.name };
+      setNames(namesRef.current);
+      changed();
     } catch (e) {
       setError(`Couldn't open the file: ${(e as Error).message ?? e}`);
     }
@@ -255,10 +325,7 @@ function JsonDiff() {
       const c = editors[side].current?.get();
       if (!c) return;
       const saved = await saveJsonFile(names[side] ?? (side === "left" ? "original.json" : "modified.json"), contentText(c));
-      if (saved) {
-        setNames((n) => ({ ...n, [side]: saved }));
-        memoryNames[side] = saved;
-      }
+      if (saved) setNamesAndSave({ ...namesRef.current, [side]: saved });
     } catch (e) {
       setError(`Couldn't save the file: ${(e as Error).message ?? e}`);
     }
@@ -267,8 +334,9 @@ function JsonDiff() {
   const loadSample = () => {
     left.current?.set({ json: SAMPLE_LEFT });
     right.current?.set({ json: SAMPLE_RIGHT });
-    setNames({ left: null, right: null });
-    scheduleCompare();
+    namesRef.current = { left: null, right: null };
+    setNames(namesRef.current);
+    changed();
   };
 
   // ---- split
@@ -343,8 +411,8 @@ function JsonDiff() {
           hidden={split.kind === "collapsed-left"}
           style={leftStyle}
           editorRef={left}
-          initial={initialLeft.current}
-          onChange={scheduleCompare}
+          initial={initial.current.left}
+          onChange={onEdit("left")}
           onClassName={leftClass}
           onOpen={openInto("left")}
           onSave={saveFrom("left")}
@@ -402,8 +470,8 @@ function JsonDiff() {
           hidden={split.kind === "collapsed-right"}
           style={{ flex: "1 1 0" }}
           editorRef={right}
-          initial={memory.right}
-          onChange={scheduleCompare}
+          initial={initial.current.right}
+          onChange={onEdit("right")}
           onClassName={rightClass}
           onOpen={openInto("right")}
           onSave={saveFrom("right")}

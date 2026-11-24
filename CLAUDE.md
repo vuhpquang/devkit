@@ -112,7 +112,8 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   ⌘E, Keyboard Shortcuts ⌘/, What's New, Report an Issue; Edit menu kept so ⌘C/⌘V work in the webview). Items reach the page as a `menu`
   event (`src/app/menuEvents.ts`); inside the app the page doesn't also handle ⌘K / ⌘, / ⌘E / ⌘/.
 - localStorage keys (never rename): `devkit.theme`, `devkit.lastTool`, `devkit.favorites`, `devkit.recent`,
-  `devkit.settings`, `devkit.whatsNew.lastVersion`, `devkit.jsonEditor.split`, `devkit.gitlab` (token stays on
+  `devkit.settings`, `devkit.whatsNew.lastVersion`, `devkit.jsonEditor.split`, `devkit.jsonDiff.docs` (both JSON Diff
+  documents + file names, saved on every edit/open/copy/swap so they survive a restart), `devkit.gitlab` (token stays on
   this Mac).
 - DevKit is a **public** repo: tools ported from the owner's work scripts (GitLab dashboard) carry no company
   hosts, user names or group names — the user types them in the app.
