@@ -119,6 +119,10 @@ ping & traceroute, speed test).
 - Local tools update as you type; **Sample** loads an example. Online tools run on **Enter**.
 - Light, dark or follow the system: the switch at the bottom of the sidebar.
 
+## License
+
+MIT. See [LICENSE](LICENSE).
+
 ---
 
 © 2026 Ha Phung Quang Vu · [vuhpquang.com](https://vuhpquang.com) · [GitHub](https://github.com/vuhpquang) · [LinkedIn](https://www.linkedin.com/in/vuhpquang/)
