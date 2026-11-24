@@ -1,13 +1,14 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { FileText, Link2, ListTree } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, Button, CopyButton, EmptyState, KeyValueList, Notice, Panel, TextInput, ToolBar, ToolPage } from "../../lib/ui";
 import { parseUrl } from "./logic";
+import { useSaved } from "../../lib/saved";
 
 const SAMPLE = "https://user:secret@api.example.com:8443/v1/search?q=%C4%91%C3%A0+n%E1%BA%B5ng&tag=dev&tag=tools&page=2#results";
 
 function UrlParser() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useSaved("input", "");
   const deferred = useDeferredValue(input);
   const result = useMemo(() => (deferred.trim() ? parseUrl(deferred) : null), [deferred]);
   const u = result?.ok ? result.url : null;

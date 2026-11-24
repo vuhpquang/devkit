@@ -10,10 +10,12 @@ const sys = vi.hoisted(() => ({
 }));
 vi.mock("../../lib/system", () => sys);
 
+import { renderTool as renderWithId, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Network Throttle", () => {
   beforeEach(() => {
+    localStorage.clear();
     sys.throttleStatus.mockReset().mockResolvedValue({ active: false, profile: null });
     sys.throttleStart.mockReset().mockResolvedValue(undefined);
     sys.throttleStop.mockReset().mockResolvedValue(undefined);
@@ -46,5 +48,16 @@ describe("Network Throttle", () => {
     const C = tool.component;
     render(<C />);
     expect(await screen.findByText("Open DevKit to throttle the network")).toBeInTheDocument();
+  });
+  it("remembers the chosen profile and time limit", async () => {
+    const { unmount } = renderWithId(tool.component, tool.id);
+    await userEvent.click(await screen.findByRole("button", { name: /^Slow/ }));
+    await userEvent.click(screen.getByRole("radio", { name: "1 h" }));
+    expect(savedValue(tool.id, "choice")).toBe("slow");
+    unmount();
+    renderWithId(tool.component, tool.id);
+    expect(await screen.findByRole("button", { name: /^Slow/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radio", { name: "1 h" })).toBeChecked();
+    expect(sys.throttleStart).not.toHaveBeenCalled();
   });
 });

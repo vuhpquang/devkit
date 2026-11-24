@@ -1,12 +1,13 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { Fingerprint } from "lucide-react";
 import type { ToolDef } from "../types";
 import { EditorPane, KeyValueList, Panel, Segmented, ToolBar, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { hashAll } from "./logic";
 
 function Hash() {
-  const [input, setInput] = useState("");
-  const [upper, setUpper] = useState<"lower" | "upper">("lower");
+  const [input, setInput] = useSaved("input", "");
+  const [upper, setUpper] = useSaved<"lower" | "upper">("case", "lower", { valid: (v) => v === "lower" || v === "upper" });
   const deferred = useDeferredValue(input);
   const r = useMemo(() => hashAll(deferred), [deferred]);
   const fmt = (s: string) => (upper === "upper" ? s.toUpperCase() : s);

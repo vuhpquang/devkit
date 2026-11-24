@@ -39,6 +39,23 @@ export const PRESETS: { label: string; patch: Partial<ResizeState> }[] = [
   { label: "128", patch: { mode: "box", width: "128", height: "128", fit: "fit" } },
 ];
 
+/** A saved ResizeState (Settings → Remember tool input) with every field of the right kind. */
+export function isResizeState(v: unknown): v is ResizeState {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const s = v as Record<string, unknown>;
+  return (
+    (s.mode === "width" || s.mode === "height" || s.mode === "box" || s.mode === "percent") &&
+    typeof s.width === "string" &&
+    typeof s.height === "string" &&
+    typeof s.percent === "string" &&
+    (s.fit === "fit" || s.fit === "fill" || s.fit === "exact") &&
+    typeof s.allowUpscale === "boolean" &&
+    (s.format === "same" || s.format === "png" || s.format === "jpeg" || s.format === "webp") &&
+    typeof s.quality === "number" &&
+    typeof s.suffix === "string"
+  );
+}
+
 const posInt = (s: string) => {
   const n = Math.round(Number(s));
   return Number.isFinite(n) && n > 0 ? Math.min(n, 16384) : undefined;

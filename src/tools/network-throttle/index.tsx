@@ -3,6 +3,7 @@ import { Gauge, Power, ShieldCheck, Snail } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, Button, EmptyState, Field, Notice, Panel, Segmented, Spinner, ToolPage, cx } from "../../lib/ui";
 import { isCancelled, throttleStart, throttleStatus, throttleStop, type ThrottleProfile } from "../../lib/system";
+import { useSaved } from "../../lib/saved";
 import { CUSTOM_DEFAULT, DURATIONS, formatKbps, parseActive, PRESETS, presetName, remaining, validate, type ActiveProfile } from "./logic";
 
 function Slider({
@@ -46,9 +47,15 @@ function NetworkThrottle() {
   const [active, setActive] = useState<ActiveProfile | null>(null);
   const [checked, setChecked] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
-  const [choice, setChoice] = useState<string>("medium");
-  const [custom, setCustom] = useState<ThrottleProfile>(CUSTOM_DEFAULT);
-  const [minutes, setMinutes] = useState<(typeof DURATIONS)[number]>(30);
+  const [choice, setChoice] = useSaved<string>("choice", "medium", {
+    valid: (v) => v === "custom" || PRESETS.some((p) => p.preset === v),
+  });
+  const [custom, setCustom] = useSaved<ThrottleProfile>("custom", CUSTOM_DEFAULT, {
+    valid: (v) => !!v && typeof v === "object" && (v as ThrottleProfile).preset === "custom" && validate(v as ThrottleProfile) === null,
+  });
+  const [minutes, setMinutes] = useSaved<(typeof DURATIONS)[number]>("minutes", 30, {
+    valid: (v) => (DURATIONS as readonly unknown[]).includes(v),
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, tick] = useState(0);

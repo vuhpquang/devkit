@@ -4,6 +4,7 @@ import type { ToolDef } from "../types";
 import { Button, CopyButton, Field, KeyValueList, Panel, Segmented, TextInput, ToolPage } from "../../lib/ui";
 import { guessUnit, isoToEpoch, parseEpoch, relativeTime, type EpochUnit } from "./logic";
 import { useHandoffText } from "../../lib/toolActive";
+import { useSaved } from "../../lib/saved";
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -15,15 +16,25 @@ function useNow(): Date {
 }
 
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const ISO_ERROR = "Not a date this tool can read — try 2026-01-31T12:00:00Z";
+
+/** Result and errors for the saved fields, so a relaunch shows what was there (the date itself isn't stored). */
+function restore(epoch: string, unit: EpochUnit, iso: string) {
+  const e = epoch.trim() ? parseEpoch(epoch, unit) : null;
+  const isoOk = iso.trim() ? isoToEpoch(iso).ok : null;
+  const date = e?.ok ? e.value : isoOk ? new Date(Date.parse(iso)) : null;
+  return { date, epochErr: e && !e.ok ? e.error : null, isoErr: isoOk === false ? ISO_ERROR : null };
+}
 
 function Timestamp() {
   const now = useNow();
-  const [epoch, setEpoch] = useState("");
-  const [unit, setUnit] = useState<EpochUnit>("s");
-  const [iso, setIso] = useState("");
-  const [epochErr, setEpochErr] = useState<string | null>(null);
-  const [isoErr, setIsoErr] = useState<string | null>(null);
-  const [date, setDate] = useState<Date | null>(null);
+  const [epoch, setEpoch] = useSaved("epoch", "");
+  const [unit, setUnit] = useSaved<EpochUnit>("unit", "s", { valid: (v) => v === "s" || v === "ms" });
+  const [iso, setIso] = useSaved("iso", "");
+  const [initial] = useState(() => restore(epoch, unit, iso));
+  const [epochErr, setEpochErr] = useState<string | null>(initial.epochErr);
+  const [isoErr, setIsoErr] = useState<string | null>(initial.isoErr);
+  const [date, setDate] = useState<Date | null>(initial.date);
 
   const fromEpoch = (text: string, u: EpochUnit) => {
     setEpoch(text);
@@ -57,7 +68,7 @@ function Timestamp() {
       setIsoErr(null);
       setDate(d);
       setEpoch(unit === "s" ? String(r.value) : String(d.getTime()));
-    } else setIsoErr("Not a date this tool can read — try 2026-01-31T12:00:00Z");
+    } else setIsoErr(ISO_ERROR);
   };
 
   // Opened with a clipboard value: a Unix time (10 digits = s, 13 = ms) or a date string.

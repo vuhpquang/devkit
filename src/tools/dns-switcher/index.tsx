@@ -3,6 +3,7 @@ import { Check, Gauge, Plus, RefreshCw, ServerCog, Trash2, Zap } from "lucide-re
 import type { ToolDef } from "../types";
 import { Badge, Button, CopyButton, EmptyState, Field, Notice, Panel, Select, Spinner, TextInput, ToolBar, ToolPage, cx } from "../../lib/ui";
 import { dnsBenchmark, dnsFlush, dnsSet, dnsStatus, isCancelled, type DnsStatus } from "../../lib/system";
+import { useSaved } from "../../lib/saved";
 import { useSettings } from "../../app/settings";
 import { activeResolvers, BUILT_IN, loadCustom, matchPreset, newCustom, saveCustom, type DnsPreset } from "./logic";
 
@@ -14,11 +15,11 @@ function DnsSwitcher() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [target, setTarget] = useState(ALL);
+  const [savedTarget, setTarget] = useSaved("target", ALL);
   const [custom, setCustom] = useState<DnsPreset[]>(loadCustom);
   const [timing, setTiming] = useState<Record<string, number | "fail" | "…">>({});
-  const [name, setName] = useState("");
-  const [servers, setServers] = useState("");
+  const [name, setName] = useSaved("name", "");
+  const [servers, setServers] = useSaved("servers", "");
   const [formError, setFormError] = useState<string | null>(null);
   const presets = useMemo(() => [...BUILT_IN, ...custom], [custom]);
 
@@ -51,6 +52,8 @@ function DnsSwitcher() {
     );
   }
 
+  // A saved connection that no longer exists falls back to every active one.
+  const target = savedTarget === ALL || status.services.some((s) => s.name === savedTarget) ? savedTarget : ALL;
   const enabled = status.services.filter((s) => s.enabled);
   const inUse = activeResolvers(status.resolvers);
   const targetServices = target === ALL ? enabled : status.services.filter((s) => s.name === target);

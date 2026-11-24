@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { tool } from "./index";
@@ -23,5 +24,18 @@ describe("URL Parser screen", () => {
     await userEvent.clear(input);
     await userEvent.type(input, "not a url");
     expect(await screen.findByRole("alert")).toHaveTextContent(/Not a valid URL/);
+  });
+});
+
+describe("URL Parser remembers", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("the URL across a relaunch", async () => {
+    const { unmount } = renderTool(tool.component, tool.id);
+    await userEvent.type(screen.getByLabelText("URL"), "https://example.com/x");
+    expect(savedValue(tool.id, "input")).toBe("https://example.com/x");
+    unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByLabelText("URL")).toHaveValue("https://example.com/x");
   });
 });

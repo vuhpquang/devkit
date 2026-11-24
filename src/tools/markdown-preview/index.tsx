@@ -1,8 +1,9 @@
-import { useDeferredValue, useMemo, useState, type MouseEvent } from "react";
+import { useDeferredValue, useMemo, type MouseEvent } from "react";
 import { BookOpen, Eye, FileText } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, CopyButton, EditorPane, EmptyState, Panel, Split, ToolBar, ToolPage } from "../../lib/ui";
 import { openExternal } from "../../lib/openExternal";
+import { useSaved } from "../../lib/saved";
 import { countWords, isExternalLink, renderMarkdown } from "./logic";
 
 /** Preview typography, scoped to .dk-md and built only from the design tokens. */
@@ -56,7 +57,7 @@ Made by [Ha Phung Quang Vu](https://vuhpquang.com).
 `;
 
 function MarkdownPreview() {
-  const [source, setSource] = useState("");
+  const [source, setSource] = useSaved("source", "");
   const deferred = useDeferredValue(source);
   const html = useMemo(() => renderMarkdown(deferred), [deferred]);
   const words = useMemo(() => countWords(deferred), [deferred]);

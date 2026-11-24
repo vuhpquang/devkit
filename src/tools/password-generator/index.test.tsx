@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Password Generator", () => {
@@ -27,5 +28,27 @@ describe("Password Generator", () => {
     await userEvent.clear(length);
     await userEvent.type(length, "8");
     expect(screen.getByText("Weak")).toBeInTheDocument();
+  });
+});
+
+describe("Password Generator saved options", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("brings the options back after a relaunch, never the passwords", async () => {
+    const first = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("button", { name: "!@#$" }));
+    const count = screen.getByLabelText("How many passwords");
+    await userEvent.clear(count);
+    await userEvent.type(count, "3");
+    expect(savedValue(tool.id, "options")).toMatchObject({ symbols: false, length: 20 });
+    first.unmount();
+    expect(Object.keys(localStorage).sort()).toEqual([
+      "devkit.input.password-generator.count",
+      "devkit.input.password-generator.options",
+    ]);
+    renderTool(tool.component, tool.id);
+    expect(screen.getByRole("button", { name: "!@#$" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByLabelText("How many passwords")).toHaveValue(3);
+    expect(screen.getByText("Passwords · 3")).toBeInTheDocument();
   });
 });

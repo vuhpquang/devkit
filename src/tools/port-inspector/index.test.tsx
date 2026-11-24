@@ -11,6 +11,7 @@ vi.mock("../../lib/system", async () => {
   return { ...actual, listPorts: () => listPorts(), killProcess: (pid: number, force: boolean) => killProcess(pid, force) };
 });
 
+import { renderTool as renderWithId, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 import { NotInApp } from "../../lib/system";
 
@@ -22,6 +23,7 @@ const rowOf = (port: string) => screen.getByText(port, { selector: "span.font-mo
 
 describe("Port Inspector", () => {
   beforeEach(() => {
+    localStorage.clear();
     listPorts.mockReset();
     killProcess.mockReset();
   });
@@ -76,5 +78,20 @@ describe("Port Inspector", () => {
     listPorts.mockRejectedValue(new NotInApp());
     renderTool();
     expect(await screen.findByText("Open DevKit to inspect ports")).toBeInTheDocument();
+  });
+  it("remembers the filter, protocol and auto refresh", async () => {
+    listPorts.mockResolvedValue(LSOF);
+    const { unmount } = renderWithId(tool.component, tool.id);
+    await screen.findByText("node");
+    await userEvent.type(screen.getByRole("textbox", { name: /Filter/ }), "post");
+    await userEvent.click(screen.getByRole("radio", { name: "All" }));
+    await userEvent.click(screen.getByRole("button", { name: "Auto refresh" }));
+    expect(savedValue(tool.id, "proto")).toBe("all");
+    unmount();
+    renderWithId(tool.component, tool.id);
+    expect(await screen.findByText("postgres")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Filter/ })).toHaveValue("post");
+    expect(screen.getByRole("radio", { name: "All" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Auto refresh" })).toHaveAttribute("aria-pressed", "true");
   });
 });

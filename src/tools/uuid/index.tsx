@@ -3,19 +3,22 @@ import { Dices, RefreshCw } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, EditorPane, Segmented, TextInput, ToolBar, ToolBarDivider, ToolPage } from "../../lib/ui";
 import { generateUuids } from "./logic";
+import { useSaved } from "../../lib/saved";
 
 const MAX = 1000;
 
 function Uuid() {
-  const [count, setCount] = useState("5");
+  const [count, setCount] = useSaved("count", "5");
   const [ids, setIds] = useState<string[]>([]);
-  const [letterCase, setCase] = useState<"lower" | "upper">("lower");
-  const [hyphens, setHyphens] = useState<"with" | "without">("with");
+  const [letterCase, setCase] = useSaved<"lower" | "upper">("case", "lower", { valid: (v) => v === "lower" || v === "upper" });
+  const [hyphens, setHyphens] = useSaved<"with" | "without">("hyphens", "with", { valid: (v) => v === "with" || v === "without" });
   const n = Math.min(MAX, Math.max(1, Math.floor(Number(count)) || 1));
 
   const generate = useCallback(() => setIds(generateUuids(n)), [n]);
   useEffect(() => {
-    setIds(generateUuids(5));
+    // First list uses the saved count.
+    setIds(generateUuids(n));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const out = useMemo(

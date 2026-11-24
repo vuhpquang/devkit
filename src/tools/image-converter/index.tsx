@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState, Field, Notice, Panel, Segmented, Spinner, Te
 import { convertImage, formatBytes, imageInfo, MIME, renameExt, type Converted, type ImageInfo, type OutFormat } from "../../lib/image";
 import { sendTo, takeHandoff } from "../../app/handoff";
 import { CHECKER, pickImages, saveFile, useBlobUrl, useImageInput, type ImageFile } from "./files";
+import { useSaved } from "../../lib/saved";
 import {
   buildOptions,
   DEFAULT_STATE,
@@ -12,6 +13,7 @@ import {
   FORMATS,
   fromHandoff,
   ICO_SIZES,
+  isConverterState,
   lockedOther,
   svgPresets,
   usesBackground,
@@ -33,8 +35,9 @@ function Preview({ url, alt, empty }: { url: string | null; alt: string; empty?:
 function ImageConverter() {
   const [source, setSource] = useState<ImageFile | null>(null);
   const [info, setInfo] = useState<ImageInfo | null>(null);
-  const [state, setState] = useState<ConverterState>(DEFAULT_STATE);
-  const [lock, setLock] = useState(true);
+  // Options are saved; the image and the result are not.
+  const [state, setState] = useSaved<ConverterState>("options", DEFAULT_STATE, { valid: isConverterState });
+  const [lock, setLock] = useSaved("lockAspect", true);
   const [result, setResult] = useState<Converted | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);

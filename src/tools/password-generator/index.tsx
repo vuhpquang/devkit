@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { KeyRound, RefreshCw } from "lucide-react";
+import { useSaved } from "../../lib/saved";
 import type { ToolDef } from "../types";
 import { Badge, Button, EditorPane, Notice, TextInput, Toggle, ToolBar, ToolBarDivider, ToolPage } from "../../lib/ui";
 import {
@@ -22,9 +23,19 @@ function Chip({ on, onToggle, children, title }: { on: boolean; onToggle: () => 
   );
 }
 
+const isOptions = (v: unknown): boolean => {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.length === "number" &&
+    (["lower", "upper", "digits", "symbols", "avoidLookAlikes"] as const).every((k) => typeof o[k] === "boolean")
+  );
+};
+
 function PasswordGenerator() {
-  const [opts, setOpts] = useState<PasswordOptions>(DEFAULT_OPTIONS);
-  const [countText, setCountText] = useState("5");
+  // Options and count are saved; the passwords themselves are never stored, only regenerated from them.
+  const [opts, setOpts] = useSaved<PasswordOptions>("options", DEFAULT_OPTIONS, { valid: isOptions });
+  const [countText, setCountText] = useSaved("count", "5");
   const [passwords, setPasswords] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const count = Math.min(MAX_COUNT, Math.max(1, Math.floor(Number(countText)) || 1));

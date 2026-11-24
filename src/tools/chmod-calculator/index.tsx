@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useSaved } from "../../lib/saved";
 import { FileLock, ShieldCheck } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Field, KeyValueList, Panel, TextInput, Toggle, ToolPage } from "../../lib/ui";
@@ -35,11 +36,25 @@ const DEFAULT: Perms = {
   sticky: false,
 };
 
+/** A stored Perms object of the right shape (a bad one would crash the grid). */
+const isPerms = (v: unknown): boolean => {
+  if (!v || typeof v !== "object") return false;
+  const p = v as Record<string, unknown>;
+  const triplet = (t: unknown) =>
+    !!t && typeof t === "object" && ["r", "w", "x"].every((k) => typeof (t as Record<string, unknown>)[k] === "boolean");
+  return WHO.every((w) => triplet(p[w])) && ["setuid", "setgid", "sticky"].every((k) => typeof p[k] === "boolean");
+};
+
 function ChmodCalculator() {
-  const [perms, setPerms] = useState<Perms>(DEFAULT);
-  const [text, setText] = useState("755");
-  const [error, setError] = useState<string | null>(null);
-  const [file, setFile] = useState("file");
+  const [perms, setPerms] = useSaved<Perms>("perms", DEFAULT, { valid: isPerms });
+  const [text, setText] = useSaved("mode", "755");
+  // A restored mode that doesn't parse shows its error again (perms keep the last valid one).
+  const [error, setError] = useState<string | null>(() => {
+    if (!text.trim()) return null;
+    const r = parseMode(text);
+    return r.ok ? null : r.error;
+  });
+  const [file, setFile] = useSaved("file", "file");
 
   const update = (p: Perms) => {
     setPerms(p);

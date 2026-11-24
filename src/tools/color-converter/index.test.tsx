@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Color Converter", () => {
@@ -30,5 +31,21 @@ describe("Color Converter", () => {
     render(<C />);
     expect(screen.getByText("On white")).toBeInTheDocument();
     expect(screen.getByText("On black")).toBeInTheDocument();
+  });
+});
+
+describe("Color Converter saved input", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("brings the colour back after a relaunch", async () => {
+    const first = renderTool(tool.component, tool.id);
+    const input = screen.getByLabelText("Colour value");
+    await userEvent.clear(input);
+    await userEvent.type(input, "coral");
+    expect(savedValue(tool.id, "input")).toBe("coral");
+    first.unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByLabelText("Colour value")).toHaveValue("coral");
+    expect(await screen.findByText("rgb(255 127 80)")).toBeInTheDocument();
   });
 });

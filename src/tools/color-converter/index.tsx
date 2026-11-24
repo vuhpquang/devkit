@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { Contrast, Palette } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, Field, KeyValueList, Panel, TextInput, ToolPage, cx } from "../../lib/ui";
@@ -17,6 +17,7 @@ import {
   type Rgba,
 } from "./logic";
 import { useHandoffText } from "../../lib/toolActive";
+import { useSaved } from "../../lib/saved";
 
 /** Checkerboard behind the swatch so transparency is visible; built from tokens. */
 const CHECKER = {
@@ -62,7 +63,7 @@ function ContrastRow({ color, bg, label }: { color: Rgba; bg: Rgba; label: strin
 
 function ColorConverter() {
   const handoff = useHandoffText();
-  const [input, setInput] = useState(handoff?.text.trim() ?? "#f5a524");
+  const [input, setInput] = useSaved("input", "#f5a524", { prefer: handoff?.text.trim() });
   const deferred = useDeferredValue(input);
   const parsed = useMemo(() => parseColor(deferred), [deferred]);
   const color = parsed.ok ? parsed.color : null;

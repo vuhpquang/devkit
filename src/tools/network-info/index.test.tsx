@@ -12,6 +12,7 @@ vi.mock("../../lib/system", async () => {
 });
 vi.mock("../ip-info/logic", () => ({ ipLookup: (ip: string) => ipLookup(ip) }));
 
+import { renderTool as renderWithId, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 import { NotInApp } from "../../lib/system";
 import { SettingsProvider } from "../../app/settings";
@@ -69,5 +70,20 @@ describe("Network Info", () => {
     netInfo.mockRejectedValue(new NotInApp());
     renderTool();
     expect(await screen.findByText("Open DevKit to see this Mac's network")).toBeInTheDocument();
+  });
+  it("remembers Show virtual interfaces", async () => {
+    netInfo.mockResolvedValue(RAW);
+    const C = tool.component;
+    const Wrapped = () => (
+      <SettingsProvider>
+        <C />
+      </SettingsProvider>
+    );
+    const { unmount } = renderWithId(Wrapped, tool.id);
+    await userEvent.click(await screen.findByRole("button", { name: "Show virtual interfaces" }));
+    expect(savedValue(tool.id, "showVirtual")).toBe(true);
+    unmount();
+    renderWithId(Wrapped, tool.id);
+    expect(await screen.findByRole("button", { name: "Show virtual interfaces" })).toHaveAttribute("aria-pressed", "true");
   });
 });

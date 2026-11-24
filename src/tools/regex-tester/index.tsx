@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { FileText, ListOrdered, Regex, Replace, Highlighter } from "lucide-react";
 import type { ToolDef } from "../types";
 import {
@@ -14,6 +14,7 @@ import {
   ToolPage,
   Button,
 } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { MAX_MATCHES, findMatches, replaceAll, segments } from "./logic";
 
 const FLAGS: { flag: string; title: string }[] = [
@@ -29,11 +30,15 @@ const SAMPLE_PATTERN = "(?<user>[\\w.+-]+)@(?<domain>[\\w-]+\\.[\\w.]+)";
 const SAMPLE_TEXT =
   "Contact: ha.vu@example.com, support@devkit.app\nInvalid: user@localhost, @nobody.com\nSales: sales+vn@shop.co.uk";
 
+/** Stored flags: only known ones, each at most once. */
+const isFlags = (v: unknown): boolean =>
+  typeof v === "string" && [...v].every((c, i) => FLAGS.some((f) => f.flag === c) && v.indexOf(c) === i);
+
 function RegexTester() {
-  const [pattern, setPattern] = useState("");
-  const [flags, setFlags] = useState("g");
-  const [text, setText] = useState("");
-  const [replacement, setReplacement] = useState("");
+  const [pattern, setPattern] = useSaved("pattern", "");
+  const [flags, setFlags] = useSaved("flags", "g", { valid: isFlags });
+  const [text, setText] = useSaved("text", "");
+  const [replacement, setReplacement] = useSaved("replacement", "");
   const dText = useDeferredValue(text);
   const dPattern = useDeferredValue(pattern);
 

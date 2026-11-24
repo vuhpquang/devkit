@@ -17,6 +17,7 @@ import {
 import { netInfo, NotInApp } from "../../lib/system";
 import { useSettings } from "../../app/settings";
 import { ipLookup, type IpInfo } from "../ip-info/logic";
+import { useSaved } from "../../lib/saved";
 import { summarize, visibleInterfaces, type Iface, type NetSummary, type Ssid } from "./logic";
 
 function ssidText(s: Ssid): string {
@@ -53,7 +54,7 @@ function numberRepeats<T extends { label: string }>(rows: T[]): T[] {
 }
 
 function IfacePanel({ iface, primary }: { iface: Iface; primary: boolean }) {
-  const [showLinkLocal, setShowLinkLocal] = useState(false);
+  const [showLinkLocal, setShowLinkLocal] = useSaved(`linkLocal.${iface.name}`, false);
   const v6 = iface.ipv6.filter((a) => showLinkLocal || !a.linkLocal);
   const hiddenLinkLocal = iface.ipv6.filter((a) => a.linkLocal).length;
   const rows = [
@@ -91,7 +92,7 @@ type Pub = { kind: "idle" } | { kind: "loading" } | { kind: "ok"; info: IpInfo }
 function NetworkInfo() {
   const { settings } = useSettings();
   const [load, setLoad] = useState<Load>({ kind: "loading" });
-  const [showVirtual, setShowVirtual] = useState(false);
+  const [showVirtual, setShowVirtual] = useSaved("showVirtual", false);
   const [pub, setPub] = useState<Pub>({ kind: "idle" });
 
   const refresh = useCallback(async () => {

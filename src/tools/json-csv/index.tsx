@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Sheet } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Segmented, Toggle, TransformTool, type TransformMode } from "../../lib/ui";
 import { csvToJson, jsonToCsv, type Delimiter } from "./logic";
+import { useSaved } from "../../lib/saved";
 
 type Mode = "to-csv" | "to-json";
 type DelimiterKey = "comma" | "semicolon" | "tab";
@@ -23,8 +24,8 @@ const SAMPLE: Record<Mode, string> = {
 };
 
 function JsonCsv() {
-  const [delimiterKey, setDelimiterKey] = useState<DelimiterKey>("comma");
-  const [detect, setDetect] = useState(true);
+  const [delimiterKey, setDelimiterKey] = useSaved<DelimiterKey>("delimiter", "comma", { valid: (v) => v === "comma" || v === "semicolon" || v === "tab" });
+  const [detect, setDetect] = useSaved("detect", true);
   const delimiter = DELIMITERS[delimiterKey];
 
   const modes = useMemo<TransformMode<Mode>[]>(

@@ -16,6 +16,7 @@ import {
   ToolPage,
   cx,
 } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { killProcess, listPorts, NotInApp } from "../../lib/system";
 import { COMMON_PORTS, filterRows, parseLsof, scopeLabel, stillListening, type PortRow, type ProtoFilter } from "./logic";
 import { useToolActive } from "../../lib/toolActive";
@@ -29,9 +30,9 @@ function PortInspector() {
   const [rows, setRows] = useState<PortRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<{ message: string; notInApp: boolean } | null>(null);
-  const [query, setQuery] = useState("");
-  const [proto, setProto] = useState<ProtoFilter>("TCP");
-  const [auto, setAuto] = useState(false);
+  const [query, setQuery] = useSaved("query", "");
+  const [proto, setProto] = useSaved<ProtoFilter>("proto", "TCP", { valid: (v) => v === "TCP" || v === "UDP" || v === "all" });
+  const [auto, setAuto] = useSaved("auto", false);
   const active = useToolActive();
   const [states, setStates] = useState<Record<string, RowState>>({});
   const live = useRef(true);

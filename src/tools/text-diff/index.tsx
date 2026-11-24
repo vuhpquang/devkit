@@ -4,6 +4,7 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import { ArrowLeftRight, Diff, Eraser, FileText, FolderOpen, GitCompareArrows } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, Button, EditorPane, EmptyState, Notice, Panel, Split, ToolBar, ToolPage, cx } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { diffText, toDiffRows, type DiffRow } from "./logic";
 
 async function pickFile(): Promise<string | null> {
@@ -49,8 +50,8 @@ const SAMPLE_A = "server:\n  port: 8080\n  host: localhost\nlogging: info\nfeatu
 const SAMPLE_B = "server:\n  port: 9090\n  host: localhost\nlogging: debug\nfeatures:\n  - search\n  - export\n  - share\n";
 
 function TextDiff() {
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
+  const [a, setA] = useSaved("original", "");
+  const [b, setB] = useSaved("modified", "");
   const [error, setError] = useState<string | null>(null);
   const da = useDeferredValue(a);
   const db = useDeferredValue(b);

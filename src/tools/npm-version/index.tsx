@@ -3,10 +3,11 @@ import { ExternalLink, Package } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, CopyButton, EmptyState, KeyValueList, LookupBar, Notice, Panel, ToolPage, cx } from "../../lib/ui";
 import { openExternal } from "../../lib/openExternal";
+import { useSaved } from "../../lib/saved";
 import { fetchPackageInfo, type NpmPackageInfo } from "./logic";
 
 function NpmVersion() {
-  const [packageName, setPackageName] = useState("");
+  const [packageName, setPackageName] = useSaved("package", "");
   const [info, setInfo] = useState<NpmPackageInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

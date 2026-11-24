@@ -5,6 +5,7 @@ import type { ToolDef } from "../types";
 import { Button, EmptyState, Notice, Panel, Segmented, TextInput, ToolBar, ToolPage, cx } from "../../lib/ui";
 import { PRESETS, SIZE_MAX, SIZE_MIN, clampSize, fileName, isImageUrl, isPng, normalizeHex, toPickerValue } from "./logic";
 import { useToolActive } from "../../lib/toolActive";
+import { useSaved } from "../../lib/saved";
 
 type Bg = "checker" | "light" | "dark";
 
@@ -43,11 +44,12 @@ function PngTint() {
   const active = useToolActive();
   const [src, setSrc] = useState<string | null>(null);
   const [label, setLabel] = useState("");
-  const [tint, setTint] = useState("#eb2f96");
-  const [hexText, setHexText] = useState("#eb2f96");
-  const [url, setUrl] = useState("");
-  const [size, setSize] = useState(220);
-  const [bg, setBg] = useState<Bg>("checker");
+  // Options and the typed URL are saved; the image itself is not.
+  const [tint, setTint] = useSaved("tint", "#eb2f96", { valid: (v) => typeof v === "string" && normalizeHex(v) === v });
+  const [hexText, setHexText] = useSaved("hexText", "#eb2f96");
+  const [url, setUrl] = useSaved("url", "");
+  const [size, setSize] = useSaved("size", 220, { valid: (v) => typeof v === "number" && clampSize(v) === v });
+  const [bg, setBg] = useSaved<Bg>("background", "checker", { valid: (v) => v === "checker" || v === "light" || v === "dark" });
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const blobUrl = useRef<string | null>(null);

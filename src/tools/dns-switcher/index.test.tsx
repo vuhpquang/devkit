@@ -11,6 +11,7 @@ const sys = vi.hoisted(() => ({
 }));
 vi.mock("../../lib/system", () => sys);
 
+import { renderTool as renderWithId, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 const STATUS = {
@@ -59,5 +60,21 @@ describe("DNS Switcher", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save preset" }));
     expect(screen.getByText("Quad9", { selector: "span" })).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("devkit.dns.presets")!)[0]).toMatchObject({ name: "Quad9", servers: ["9.9.9.9"] });
+  });
+  it("remembers the connection to apply to and the preset form", async () => {
+    const { unmount } = renderWithId(tool.component, tool.id);
+    await userEvent.selectOptions(await screen.findByLabelText("Apply to"), "Wi-Fi");
+    await userEvent.type(screen.getByPlaceholderText("Quad9"), "Quad9");
+    expect(savedValue(tool.id, "target")).toBe("Wi-Fi");
+    unmount();
+    renderWithId(tool.component, tool.id);
+    expect(await screen.findByLabelText("Apply to")).toHaveValue("Wi-Fi");
+    expect(screen.getByPlaceholderText("Quad9")).toHaveValue("Quad9");
+  });
+
+  it("falls back to every connection when the saved one is gone", async () => {
+    localStorage.setItem("devkit.input.dns-switcher.target", '"USB LAN"');
+    renderWithId(tool.component, tool.id);
+    expect(await screen.findByLabelText("Apply to")).toHaveValue("__all__");
   });
 });

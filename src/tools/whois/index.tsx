@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Globe, Landmark } from "lucide-react";
 import type { ToolDef } from "../types";
 import { CopyButton, EmptyState, LookupBar, Notice, Panel, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { whoisLookup } from "./logic";
 
 function Whois() {
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useSaved("domain", "");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

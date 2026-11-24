@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Globe, Radar, Route, Square } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, EditorPane, EmptyState, Notice, Panel, Segmented, Spinner, TextInput, ToolBar, ToolPage, cx } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { startProbe, stopProbe, type ProbeEvent } from "../../lib/system";
 import {
   addSample,
@@ -115,9 +116,9 @@ function HopTable({ hops }: { hops: Hop[] }) {
 }
 
 function PingTraceroute() {
-  const [mode, setMode] = useState<Mode>("ping");
-  const [host, setHost] = useState("");
-  const [count, setCount] = useState<Count>("5");
+  const [mode, setMode] = useSaved<Mode>("mode", "ping", { valid: (v) => v === "ping" || v === "traceroute" });
+  const [host, setHost] = useSaved("host", "");
+  const [count, setCount] = useSaved<Count>("count", "5", { valid: (v) => v === "5" || v === "20" || v === "0" });
   const [runId, setRunId] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [started, setStarted] = useState(false);

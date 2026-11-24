@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Hash } from "lucide-react";
 import type { ToolDef } from "../types";
 import { CopyButton, Panel, ToolPage, cx } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { convertBase, type Base } from "./logic";
 
 const FIELDS: { base: Base; label: string; key: "bin" | "oct" | "dec" | "hex"; placeholder: string }[] = [
@@ -18,8 +18,14 @@ function group(s: string, base: Base): string {
   return s.replace(new RegExp(`\\B(?=(.{${size}})+$)`, "g"), sep);
 }
 
+/** The field typed in last and its text, as stored. */
+const isStoredSource = (v: unknown): boolean => {
+  const s = v as { base?: unknown; value?: unknown } | null;
+  return !!s && typeof s === "object" && [2, 8, 10, 16].includes(s.base as number) && typeof s.value === "string";
+};
+
 function NumberBase() {
-  const [src, setSrc] = useState<{ base: Base; value: string }>({ base: 10, value: "" });
+  const [src, setSrc] = useSaved<{ base: Base; value: string }>("source", { base: 10, value: "" }, { valid: isStoredSource });
   const result = src.value.trim() ? convertBase(src.value, src.base) : null;
 
   return (

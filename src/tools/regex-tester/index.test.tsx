@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Regex Tester screen", () => {
@@ -28,5 +29,21 @@ describe("Regex Tester screen", () => {
     expect(i).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(i);
     expect(i).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("Regex Tester saved input", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("brings pattern, flags and text back after a relaunch", async () => {
+    const first = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("button", { name: /Sample/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Flag i" }));
+    expect(savedValue(tool.id, "flags")).toBe("gi");
+    first.unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByLabelText("Regular expression")).toHaveValue("(?<user>[\\w.+-]+)@(?<domain>[\\w-]+\\.[\\w.]+)");
+    expect(screen.getByRole("button", { name: "Flag i" })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByText("3 matches")).toBeInTheDocument();
   });
 });

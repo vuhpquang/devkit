@@ -1,13 +1,14 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { CaseSensitive, FileText } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, EditorPane, KeyValueList, Panel, ToolBar, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { convertAll, splitWords } from "./logic";
 
 const SAMPLE = "XMLHttpRequest user_id for Đường Phố";
 
 function CaseConverter() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useSaved("input", "");
   const deferred = useDeferredValue(input);
   const rows = useMemo(() => convertAll(deferred), [deferred]);
   const words = useMemo(() => splitWords(deferred), [deferred]);

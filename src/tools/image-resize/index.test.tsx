@@ -9,6 +9,7 @@ const handoff = vi.hoisted(() => ({ sendTo: vi.fn(), takeHandoff: vi.fn() }));
 vi.mock("../../app/handoff", () => handoff);
 
 import { tool } from "./index";
+import { renderTool, savedValue } from "../../test/renderTool";
 
 const file = (name: string, mime: string) => ({ name, mime, bytes: new Uint8Array(1000) });
 
@@ -69,5 +70,27 @@ describe("Image Resize", () => {
     const C = tool.component;
     render(<C />);
     expect(screen.getByText("Drop images to resize")).toBeInTheDocument();
+  });
+});
+
+describe("Image Resize remembers", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    handoff.takeHandoff.mockReset().mockReturnValue(undefined);
+  });
+
+  it("its size, format and suffix across a relaunch", async () => {
+    const { unmount } = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("button", { name: "512" }));
+    await userEvent.click(screen.getByRole("radio", { name: "WebP" }));
+    const suffix = screen.getByLabelText("File name suffix");
+    await userEvent.clear(suffix);
+    await userEvent.type(suffix, "-small");
+    expect(savedValue(tool.id, "options")).toMatchObject({ mode: "box", width: "512", height: "512", format: "webp", suffix: "-small" });
+    unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByRole("radio", { name: "WebP" })).toBeChecked();
+    expect(screen.getByLabelText("Width")).toHaveValue("512");
+    expect(screen.getByLabelText("File name suffix")).toHaveValue("-small");
   });
 });

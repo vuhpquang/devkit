@@ -14,10 +14,12 @@ vi.mock("../../lib/system", () => ({
   stopProbe: (id: number) => stopProbe(id),
 }));
 
+import { renderTool as renderWithId, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Ping & Traceroute", () => {
   beforeEach(() => {
+    localStorage.clear();
     startProbe.mockClear();
     stopProbe.mockClear();
   });
@@ -68,5 +70,19 @@ describe("Ping & Traceroute", () => {
     render(<C />);
     await userEvent.type(screen.getByLabelText("Host"), "1.1.1.1{Enter}");
     expect(await screen.findByRole("alert")).toHaveTextContent(/DevKit app/);
+  });
+  it("remembers the host, count and probe without starting one", async () => {
+    const { unmount } = renderWithId(tool.component, tool.id);
+    await userEvent.type(screen.getByLabelText("Host"), "example.com");
+    await userEvent.click(screen.getByRole("radio", { name: "20" }));
+    await userEvent.click(screen.getByRole("radio", { name: /Traceroute/ }));
+    expect(savedValue(tool.id, "count")).toBe("20");
+    unmount();
+    renderWithId(tool.component, tool.id);
+    expect(screen.getByLabelText("Host")).toHaveValue("example.com");
+    expect(screen.getByRole("radio", { name: /Traceroute/ })).toBeChecked();
+    await userEvent.click(screen.getByRole("radio", { name: /Ping/ }));
+    expect(screen.getByRole("radio", { name: "20" })).toBeChecked();
+    expect(startProbe).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ const handoff = vi.hoisted(() => ({ sendTo: vi.fn(), takeHandoff: vi.fn() }));
 vi.mock("../../app/handoff", () => handoff);
 
 import { tool, loadOptions } from "./index";
+import { renderTool, savedValue } from "../../test/renderTool";
 
 /** The second editor is always the output pane. */
 const output = () => document.querySelectorAll(".cm-content")[1] as HTMLElement;
@@ -57,5 +58,20 @@ describe("SVG ↔ React", () => {
     await waitFor(() => expect(output().textContent).toContain("const MyLogo"));
     await userEvent.click(screen.getByRole("button", { name: "memo" }));
     expect(loadOptions().memo).toBe(true);
+  });
+
+  it("remembers the SVG, mode and preview size across a relaunch", async () => {
+    const { unmount } = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("button", { name: /Sample/ }));
+    await userEvent.click(screen.getByRole("radio", { name: "SVG → React Native" }));
+    await userEvent.click(screen.getByRole("radio", { name: "48" }));
+    expect(savedValue(tool.id, "input")).toContain("<title>Folder</title>");
+    expect(savedValue(tool.id, "mode")).toBe("native");
+    expect(savedValue(tool.id, "previewSize")).toBe("48");
+    unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByRole("radio", { name: "SVG → React Native" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "48" })).toBeChecked();
+    await waitFor(() => expect(output().textContent).toContain('from "react-native-svg"'));
   });
 });

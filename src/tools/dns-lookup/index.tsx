@@ -2,13 +2,16 @@ import { useState } from "react";
 import { Globe, Server } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Badge, CopyButton, EmptyState, LookupBar, Notice, Panel, Toggle, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { dnsLookup, defaultTypes, type DnsRecordType, type DnsRecord } from "./logic";
 
 const ALL_TYPES: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "CNAME"];
 
 function DnsLookup() {
-  const [domain, setDomain] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<DnsRecordType[]>(defaultTypes());
+  const [domain, setDomain] = useSaved("domain", "");
+  const [selectedTypes, setSelectedTypes] = useSaved<DnsRecordType[]>("types", defaultTypes, {
+    valid: (v) => Array.isArray(v) && v.every((t) => ALL_TYPES.includes(t as DnsRecordType)),
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [records, setRecords] = useState<DnsRecord[] | null>(null);

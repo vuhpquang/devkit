@@ -9,6 +9,7 @@ const handoff = vi.hoisted(() => ({ sendTo: vi.fn(), takeHandoff: vi.fn() }));
 vi.mock("../../app/handoff", () => handoff);
 
 import { tool } from "./index";
+import { renderTool, savedValue } from "../../test/renderTool";
 
 const SVG = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"/>');
 
@@ -81,5 +82,40 @@ describe("Image Converter", () => {
     const C = tool.component;
     render(<C />);
     expect(await screen.findByText("Couldn't read the image: bad")).toBeInTheDocument();
+  });
+});
+
+describe("Image Converter remembers", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+    img.imageInfo.mockReset().mockResolvedValue({ format: "svg", width: 24, height: 24, hasAlpha: true });
+    img.convertImage.mockReset().mockResolvedValue({ bytes: new Uint8Array(30), width: 48, height: 48 });
+    handoff.takeHandoff.mockReset().mockReturnValue({ kind: "image", name: "icon.svg", mime: "image/svg+xml", bytes: SVG });
+  });
+
+  it("its format and aspect lock across a relaunch, not the image", async () => {
+    const { unmount } = renderTool(tool.component, tool.id);
+    await waitFor(() => expect(img.convertImage).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole("radio", { name: "JPEG" }));
+    await userEvent.click(screen.getByRole("button", { name: "Aspect ratio locked" }));
+    expect(savedValue(tool.id, "options")).toMatchObject({ format: "jpeg" });
+    expect(savedValue(tool.id, "lockAspect")).toBe(false);
+    unmount();
+    handoff.takeHandoff.mockReturnValue(undefined);
+    const again = renderTool(tool.component, tool.id);
+    expect(screen.getByText("Drop an image to convert")).toBeInTheDocument();
+    again.unmount();
+    handoff.takeHandoff.mockReturnValue({ kind: "image", name: "icon.svg", mime: "image/svg+xml", bytes: SVG });
+    renderTool(tool.component, tool.id);
+    expect(await screen.findByRole("radio", { name: "JPEG" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Aspect ratio free" })).toBeInTheDocument();
+  });
+
+  it("ignores a saved state of the wrong shape", async () => {
+    localStorage.setItem("devkit.input.image-converter.options", JSON.stringify({ format: "heic" }));
+    renderTool(tool.component, tool.id);
+    expect(await screen.findByRole("radio", { name: "PNG" })).toBeChecked();
   });
 });

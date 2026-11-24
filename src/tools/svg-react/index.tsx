@@ -20,6 +20,7 @@ import { componentName, componentToSvg, DEFAULT_OPTIONS, parseSvg, svgToComponen
 import { optimizeSvg, savedText } from "./optimize";
 import { inApp, openSvgFile, readDropped, saveTextFile } from "./files";
 import { useToolActive } from "../../lib/toolActive";
+import { useSaved } from "../../lib/saved";
 
 const KEY = "devkit.svgReact";
 
@@ -101,10 +102,10 @@ function Preview({ svg, size, onSize }: { svg: string | null; size: PreviewSize;
 
 function SvgReact() {
   const active = useToolActive();
-  const [mode, setMode] = useState<Mode>("react");
-  const [input, setInput] = useState("");
+  const [mode, setMode] = useSaved<Mode>("mode", "react", { valid: (v) => v === "react" || v === "native" || v === "svg" });
+  const [input, setInput] = useSaved("input", "");
   const [opts, setOpts] = useState<Options>(loadOptions);
-  const [size, setSize] = useState<PreviewSize>("fit");
+  const [size, setSize] = useSaved<PreviewSize>("previewSize", "fit", { valid: (v) => v === "24" || v === "48" || v === "96" || v === "fit" });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const deferred = useDeferredValue(input);

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { tool } from "./index";
 
 describe("Cron Parser", () => {
@@ -26,5 +27,20 @@ describe("Cron Parser", () => {
     await userEvent.clear(input);
     await userEvent.type(input, "* * *");
     expect(await screen.findByRole("alert")).toHaveTextContent(/got 3/);
+  });
+});
+
+describe("Cron Parser saved input", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("brings the expression and time zone back after a relaunch", async () => {
+    const first = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("button", { name: "Hourly" }));
+    await userEvent.click(screen.getByRole("radio", { name: "UTC" }));
+    expect(savedValue(tool.id, "zone")).toBe("utc");
+    first.unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByLabelText("Cron expression")).toHaveValue("0 * * * *");
+    expect(screen.getByRole("radio", { name: "UTC" })).toHaveAttribute("aria-checked", "true");
   });
 });

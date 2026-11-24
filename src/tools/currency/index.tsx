@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, Coins } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, CopyButton, Field, Notice, Select, Spinner, TextInput, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { fetchRates, convertCurrency, commonCurrencies, type ExchangeRates } from "./logic";
 
 const CURRENCIES = commonCurrencies();
+const isCurrency = (v: unknown) => typeof v === "string" && CURRENCIES.includes(v);
 
 function Currency() {
-  const [amount, setAmount] = useState("1");
-  const [from, setFrom] = useState("USD");
-  const [to, setTo] = useState("EUR");
+  const [amount, setAmount] = useSaved("amount", "1");
+  const [from, setFrom] = useSaved("from", "USD", { valid: isCurrency });
+  const [to, setTo] = useSaved("to", "EUR", { valid: isCurrency });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rates, setRates] = useState<Map<string, ExchangeRates>>(() => new Map());

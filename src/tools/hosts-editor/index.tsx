@@ -3,6 +3,7 @@ import { FileClock, ListTree, Plus, RotateCcw, Save, ScrollText, Trash2 } from "
 import type { ToolDef } from "../types";
 import { Badge, Button, EditorPane, EmptyState, Notice, Panel, Spinner, Switch, TextInput, ToolBar, ToolPage } from "../../lib/ui";
 import { hostsBackup, hostsRead, hostsWrite, isCancelled } from "../../lib/system";
+import { useSaved } from "../../lib/saved";
 import { addEntry, invalidLines, parseHosts, removeLine, toggleEntry } from "./logic";
 
 function HostsEditor() {
@@ -13,8 +14,9 @@ function HostsEditor() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [ip, setIp] = useState("127.0.0.1");
-  const [names, setNames] = useState("");
+  // Only the Add entry form is saved, never a draft of the file (it could overwrite a newer /etc/hosts).
+  const [ip, setIp] = useSaved("ip", "127.0.0.1");
+  const [names, setNames] = useSaved("names", "");
   const [addError, setAddError] = useState<string | null>(null);
 
   const load = useCallback(async () => {

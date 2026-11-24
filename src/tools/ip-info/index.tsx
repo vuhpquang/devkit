@@ -2,10 +2,11 @@ import { useState } from "react";
 import { MapPin, Network } from "lucide-react";
 import type { ToolDef } from "../types";
 import { EmptyState, KeyValueList, LookupBar, Notice, Panel, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { ipLookup, type IpInfo as IpInfoData } from "./logic";
 
 function IpInfo() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useSaved("ip", "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<IpInfoData | null>(null);

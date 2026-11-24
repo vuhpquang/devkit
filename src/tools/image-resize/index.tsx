@@ -6,9 +6,11 @@ import { convertImage, formatBytes, imageInfo, type Converted, type Fit, type Im
 import { takeHandoff } from "../../app/handoff";
 import { CHECKER, pickImages, saveAll, saveFile, useBlobUrl, useImageInput, type ImageFile } from "../image-converter/files";
 import { deltaPercent } from "../image-converter/logic";
+import { useSaved } from "../../lib/saved";
 import {
   DEFAULT_STATE,
   fromHandoff,
+  isResizeState,
   isSafeSuffix,
   mimeOf,
   outFormat,
@@ -48,7 +50,8 @@ function Thumb({ file }: { file: ImageFile }) {
 
 function ImageResize() {
   const [rows, setRows] = useState<Row[]>([]);
-  const [state, setState] = useState<ResizeState>(DEFAULT_STATE);
+  // Options are saved; the images and results are not.
+  const [state, setState] = useSaved<ResizeState>("options", DEFAULT_STATE, { valid: isResizeState });
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);

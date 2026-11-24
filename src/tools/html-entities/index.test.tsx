@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { renderTool, savedValue } from "../../test/renderTool";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { tool } from "./index";
@@ -21,5 +22,18 @@ describe("HTML Entities screen", () => {
     await userEvent.click(screen.getByRole("button", { name: /Sample/ }));
     expect(await screen.findByText("Decoded")).toBeInTheDocument();
     expect(container.textContent).toContain("<p>Café & crème — © 2026 😀</p>");
+  });
+});
+
+describe("HTML Entities remembers", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("the non-ASCII choice across a relaunch", async () => {
+    const { unmount } = renderTool(tool.component, tool.id);
+    await userEvent.click(screen.getByRole("radio", { name: /Encode non-ASCII/ }));
+    expect(savedValue(tool.id, "nonAscii")).toBe("encode");
+    unmount();
+    renderTool(tool.component, tool.id);
+    expect(screen.getByRole("radio", { name: /Encode non-ASCII/ })).toBeChecked();
   });
 });

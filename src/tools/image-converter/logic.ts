@@ -54,6 +54,24 @@ export const DEFAULT_STATE: ConverterState = {
   icoSizes: DEFAULT_ICO,
 };
 
+/** A saved ConverterState (Settings → Remember tool input) with every field of the right kind. */
+export function isConverterState(v: unknown): v is ConverterState {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const s = v as Record<string, unknown>;
+  return (
+    FORMATS.some((f) => f.value === s.format) &&
+    typeof s.quality === "number" &&
+    typeof s.lossless === "boolean" &&
+    typeof s.background === "string" &&
+    (s.sizeMode === "original" || s.sizeMode === "size" || s.sizeMode === "percent") &&
+    typeof s.width === "string" &&
+    typeof s.height === "string" &&
+    typeof s.percent === "string" &&
+    Array.isArray(s.icoSizes) &&
+    s.icoSizes.every((n) => (ICO_SIZES as readonly unknown[]).includes(n))
+  );
+}
+
 const posInt = (s: string) => {
   const n = Math.round(Number(s));
   return Number.isFinite(n) && n > 0 ? Math.min(n, 16384) : undefined;

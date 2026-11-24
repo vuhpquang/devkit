@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Pilcrow, RefreshCw } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Button, EditorPane, TextInput, ToolBar, ToolPage } from "../../lib/ui";
+import { useSaved } from "../../lib/saved";
 import { generateLorem } from "./logic";
 
 function Lorem() {
-  const [count, setCount] = useState("3");
+  const [count, setCount] = useSaved("paragraphs", "3");
   const n = Math.min(100, Math.max(1, Math.floor(Number(count)) || 1));
   const [out, setOut] = useState("");
   useEffect(() => setOut(generateLorem(n)), [n]);

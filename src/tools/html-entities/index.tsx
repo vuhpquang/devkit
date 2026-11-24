@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Ampersand } from "lucide-react";
 import type { ToolDef } from "../types";
 import { Segmented, TransformTool, type TransformMode } from "../../lib/ui";
 import { decodeEntities, encodeEntities } from "./logic";
+import { useSaved } from "../../lib/saved";
 
 type Mode = "encode" | "decode";
 
 function HtmlEntities() {
-  const [nonAscii, setNonAscii] = useState<"keep" | "encode">("keep");
+  const [nonAscii, setNonAscii] = useSaved<"keep" | "encode">("nonAscii", "keep", { valid: (v) => v === "keep" || v === "encode" });
   const modes = useMemo<TransformMode<Mode>[]>(
     () => [
       {
