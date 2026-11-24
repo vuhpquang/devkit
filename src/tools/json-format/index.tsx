@@ -74,13 +74,48 @@ const SAMPLE_SCHEMA = `{
   }
 }`;
 
-/** The document survives switching to another tool and back (not app restarts). */
+const DOC_KEY = "devkit.jsonFormat.doc";
+
+/** The document as last saved this session (fallback when localStorage can't hold it). */
 let lastDoc: EditorContent = { text: "" };
 let lastName: string | null = null;
 
+/** The document and its file name, as left the last time it changed — across app restarts. */
+export function loadDoc(): { doc: EditorContent; name: string | null } {
+  try {
+    const raw = localStorage.getItem(DOC_KEY);
+    if (raw) {
+      const v = JSON.parse(raw) as { text?: unknown; name?: unknown };
+      if (typeof v.text === "string") return { doc: { text: v.text }, name: typeof v.name === "string" ? v.name : null };
+    }
+  } catch {
+    /* fall back to this session's copy */
+  }
+  return { doc: lastDoc, name: lastName };
+}
+
+/** Stored as text (the editor's own stringify), so lossless big numbers survive. */
+function saveDoc(text: string, name: string | null) {
+  lastDoc = { text };
+  lastName = name;
+  try {
+    localStorage.setItem(DOC_KEY, JSON.stringify({ text, name }));
+  } catch {
+    try {
+      localStorage.removeItem(DOC_KEY);
+    } catch {
+      /* not remembered */
+    }
+  }
+}
+
 function JsonFormat() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
-  const [name, setName] = useState<string | null>(lastName);
+  const stored = useRef<ReturnType<typeof loadDoc> | null>(null);
+  stored.current ??= loadDoc();
+  const [name, setName] = useState<string | null>(stored.current.name);
+  const nameRef = useRef(name);
+  nameRef.current = name;
   const [error, setError] = useState<string | null>(null);
   const editor = useRef<JsonEditorHandle>(null);
   const update = (p: Partial<Prefs>) =>
@@ -95,12 +130,16 @@ function JsonFormat() {
     });
 
   // Text handed over by another tool loads once.
-  const initial = useRef<EditorContent>(lastDoc);
+  const initial = useRef<EditorContent>(stored.current.doc);
   const handed = useRef(false);
+  const handedOver = useRef(false);
   if (!handed.current) {
     handed.current = true;
     const h = takeHandoff("json-format");
-    if (h?.kind === "text") initial.current = { text: h.text };
+    if (h?.kind === "text") {
+      initial.current = { text: h.text };
+      handedOver.current = true;
+    }
   }
 
   const schema = useMemo(() => (prefs.schemaOpen ? schemaValidator(prefs.schema) : {}), [prefs.schemaOpen, prefs.schema]);
@@ -117,12 +156,19 @@ function JsonFormat() {
     [prefs.view, prefs.indent, prefs.lossless, schema.validator],
   );
 
-  useEffect(
-    () => () => {
-      if (editor.current) lastDoc = editor.current.get();
-    },
-    [],
-  );
+  // Every edit, open, sample and save is written at once, so the document survives a restart.
+  const persist = (nextName: string | null = nameRef.current) => {
+    if (editor.current) saveDoc(editor.current.getText(), nextName);
+  };
+  useEffect(() => {
+    if (handedOver.current) {
+      nameRef.current = null;
+      setName(null);
+      persist(null);
+    }
+    // Once, after the editor exists.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const open = async () => {
     try {
@@ -131,7 +177,7 @@ function JsonFormat() {
       if (!f) return;
       editor.current?.set({ text: f.text });
       setName(f.name);
-      lastName = f.name;
+      persist(f.name);
     } catch (e) {
       setError(`Couldn't open the file: ${(e as Error).message ?? e}`);
     }
@@ -142,7 +188,7 @@ function JsonFormat() {
       const saved = await saveJsonFile(name ?? "document.json", editor.current?.getText() ?? "");
       if (saved) {
         setName(saved);
-        lastName = saved;
+        persist(saved);
       }
     } catch (e) {
       setError(`Couldn't save the file: ${(e as Error).message ?? e}`);
@@ -161,7 +207,12 @@ function JsonFormat() {
       <ToolBar
         end={
           <>
-            <Button size="sm" variant="ghost" icon={FileText} onClick={() => editor.current?.set({ text: SAMPLE })}>
+            <Button size="sm" variant="ghost" icon={FileText} onClick={() => {
+                editor.current?.set({ text: SAMPLE });
+                setName(null);
+                persist(null);
+              }}
+            >
               Sample
             </Button>
             <Button size="sm" variant="ghost" icon={FolderOpen} label="Open a JSON file…" onClick={() => void open()} />
@@ -219,6 +270,7 @@ function JsonFormat() {
             ref={editor}
             initial={initial.current}
             options={options}
+            onChange={() => persist()}
             onChangeMode={(m) => VIEW[m] && VIEW[m] !== prefs.view && update({ view: VIEW[m] })}
             ariaLabel="JSON document"
           />

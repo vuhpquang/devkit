@@ -46,16 +46,23 @@ type Side = "left" | "right";
 const SPLIT_KEY = "devkit.jsonEditor.split";
 const DOCS_KEY = "devkit.jsonDiff.docs";
 const MIDDLE = 132;
-/** Differences are highlighted in tree mode, so both editors start there (the menu switches any time). */
-const OPTIONS: EditorOptions = { mode: Mode.tree };
+type View = "text" | "tree" | "table";
+const MODE: Record<View, Mode> = { text: Mode.text, tree: Mode.tree, table: Mode.table };
+/** Differences are highlighted in tree mode, so a side starts there until its menu picks another view. */
+const viewOf = (v: unknown): View => (v === "text" || v === "table" ? v : "tree");
 
 interface Docs {
   left: EditorContent;
   right: EditorContent;
   names: Record<Side, string | null>;
+  /** The text / tree / table view each side was last left in. */
+  views: Record<Side, View>;
+  /** The Compare switch and whether the Changes list is open. */
+  compare: boolean;
+  listOpen: boolean;
 }
 
-const EMPTY: Docs = { left: { json: {} }, right: { json: {} }, names: { left: null, right: null } };
+const EMPTY: Docs = { left: { json: {} }, right: { json: {} }, names: { left: null, right: null }, views: { left: "tree", right: "tree" }, compare: true, listOpen: true };
 
 /** Both documents, as last saved in this session (fallback when localStorage can't hold them). */
 let memory: Docs = EMPTY;
@@ -73,11 +80,14 @@ export function loadDocs(): Docs {
   try {
     const raw = localStorage.getItem(DOCS_KEY);
     if (!raw) return memory;
-    const v = JSON.parse(raw) as Partial<Docs> & { names?: Partial<Record<Side, unknown>> };
+    const v = JSON.parse(raw) as Partial<Docs> & { names?: Partial<Record<Side, unknown>>; views?: Partial<Record<Side, unknown>> };
     return {
       left: isContent(v.left) ? v.left : EMPTY.left,
       right: isContent(v.right) ? v.right : EMPTY.right,
       names: { left: nameOf(v.names?.left), right: nameOf(v.names?.right) },
+      views: { left: viewOf(v.views?.left), right: viewOf(v.views?.right) },
+      compare: v.compare !== false,
+      listOpen: v.listOpen !== false,
     };
   } catch {
     return memory;
@@ -114,10 +124,12 @@ function Pane({
   style,
   editorRef,
   initial,
+  view,
   onChange,
   onClassName,
   onOpen,
   onSave,
+  onChangeView,
 }: {
   side: Side;
   fileName: string | null;
@@ -125,12 +137,16 @@ function Pane({
   style?: React.CSSProperties;
   editorRef: React.Ref<JsonEditorHandle>;
   initial: EditorContent;
+  /** The view the editor opens in; later switches come back through onChangeView. */
+  view: View;
+  onChangeView: (view: View) => void;
   onChange: (content: EditorContent) => void;
   onClassName?: OnClassName;
   onOpen: () => void;
   onSave: () => void;
 }) {
   const title = side === "left" ? "Original" : "Modified";
+  const options = useMemo<EditorOptions>(() => ({ mode: MODE[view] }), [view]);
   return (
     <section
       data-side={side}
@@ -152,7 +168,7 @@ function Pane({
         <Button variant="ghost" size="sm" icon={Save} label="Save…" onClick={onSave} />
       </header>
       <div className="flex-1 min-h-0">
-        <JsonEditorView ref={editorRef} initial={initial} options={OPTIONS} onChange={onChange} onClassName={onClassName} ariaLabel={`${title} JSON`} />
+        <JsonEditorView ref={editorRef} initial={initial} options={options} onChange={onChange} onChangeMode={(m) => onChangeView(viewOf(m))} onClassName={onClassName} ariaLabel={`${title} JSON`} />
       </div>
     </section>
   );
@@ -189,6 +205,8 @@ function JsonDiff() {
   const [names, setNames] = useState<Record<Side, string | null>>(initial.current.names);
   const namesRef = useRef(names);
   namesRef.current = names;
+  const views = useRef(initial.current.views);
+  const ui = useRef({ compare: initial.current.compare, listOpen: initial.current.listOpen });
   const left = useRef<JsonEditorHandle>(null);
   const right = useRef<JsonEditorHandle>(null);
   const editors: Record<Side, React.RefObject<JsonEditorHandle | null>> = { left, right };
@@ -197,8 +215,12 @@ function JsonDiff() {
   const persist = useCallback((nextNames?: Record<Side, string | null>, edited?: { side: Side; content: EditorContent }) => {
     if (!left.current || !right.current) return;
     const doc = (side: Side) => (edited?.side === side ? edited.content : (side === "left" ? left : right).current!.get());
-    saveDocs({ left: doc("left"), right: doc("right"), names: nextNames ?? namesRef.current });
+    saveDocs({ left: doc("left"), right: doc("right"), names: nextNames ?? namesRef.current, views: views.current, ...ui.current });
   }, []);
+  const onChangeView = (side: Side) => (view: View) => {
+    views.current = { ...views.current, [side]: view };
+    persist();
+  };
   const onEdit = (side: Side) => (content: EditorContent) => {
     persist(undefined, { side, content });
     scheduleCompare();
@@ -215,12 +237,17 @@ function JsonDiff() {
   }, [persist]);
 
   // ---- compare state
-  const [compareOn, setCompareOn] = useState(true);
+  const [compareOn, setCompareOn] = useState(initial.current.compare);
   const [diff, setDiff] = useState<JsonDiff | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
   const [status, setStatus] = useState<CompareStatus>({ kind: "off" });
   const [current, setCurrent] = useState(-1);
-  const [listOpen, setListOpen] = useState(true);
+  const [listOpen, setListOpen] = useState(initial.current.listOpen);
+  useEffect(() => {
+    if (ui.current.compare === compareOn && ui.current.listOpen === listOpen) return;
+    ui.current = { compare: compareOn, listOpen };
+    persist();
+  }, [compareOn, listOpen, persist]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const compareNow = useCallback(() => {
@@ -412,6 +439,8 @@ function JsonDiff() {
           style={leftStyle}
           editorRef={left}
           initial={initial.current.left}
+          view={initial.current.views.left}
+          onChangeView={onChangeView("left")}
           onChange={onEdit("left")}
           onClassName={leftClass}
           onOpen={openInto("left")}
@@ -471,6 +500,8 @@ function JsonDiff() {
           style={{ flex: "1 1 0" }}
           editorRef={right}
           initial={initial.current.right}
+          view={initial.current.views.right}
+          onChangeView={onChangeView("right")}
           onChange={onEdit("right")}
           onClassName={rightClass}
           onOpen={openInto("right")}

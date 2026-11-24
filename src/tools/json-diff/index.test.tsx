@@ -112,4 +112,31 @@ describe("JSON Diff", () => {
     expect(live()[0].content).toEqual({ json: {} });
     expect(live()[1].content).toEqual({ text: "[1]" });
   });
+
+  it("keeps each side's text / tree / table view across a relaunch", () => {
+    const C = tool.component;
+    const { unmount } = render(<C />);
+    act(() => (live()[0].props.onChangeMode as (m: string) => void)("text"));
+    act(() => (live()[1].props.onChangeMode as (m: string) => void)("table"));
+    expect(JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!).views).toEqual({ left: "text", right: "table" });
+    unmount();
+
+    render(<C />);
+    expect(live().map((e) => e.props.mode)).toEqual(["text", "table"]);
+  });
+
+  it("remembers the Compare switch and the Changes list across a relaunch", async () => {
+    const C = tool.component;
+    const { unmount } = render(<C />);
+    await userEvent.click(screen.getByRole("button", { name: "Sample" }));
+    await wait();
+    await userEvent.click(screen.getByRole("button", { name: /Changes/ }));
+    await userEvent.click(screen.getByRole("switch", { name: "Compare" }));
+    const saved = JSON.parse(localStorage.getItem("devkit.jsonDiff.docs")!);
+    expect(saved).toMatchObject({ compare: false, listOpen: false });
+    unmount();
+
+    render(<C />);
+    expect(screen.getByRole("switch", { name: "Compare" })).not.toBeChecked();
+  });
 });

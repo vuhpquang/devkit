@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { editors, live } from "../../test/jsoneditorMock";
 
@@ -71,5 +71,31 @@ describe("JSON Format", () => {
     const C = tool.component;
     render(<C />);
     expect(live()[0].content).toEqual({ text: '{"a":1}' });
+  });
+
+  it("saves the document on every edit and brings it back after a relaunch", () => {
+    const C = tool.component;
+    const { unmount } = render(<C />);
+    act(() => {
+      live()[0].content = { text: '{"kept":true' };
+      (live()[0].props.onChange as (c: unknown) => void)(live()[0].content);
+    });
+    expect(JSON.parse(localStorage.getItem("devkit.jsonFormat.doc")!)).toEqual({ text: '{"kept":true', name: null });
+    unmount();
+
+    render(<C />);
+    expect(live()[0].content).toEqual({ text: '{"kept":true' });
+  });
+
+  it("saves the sample and a handed-over document", async () => {
+    const C = tool.component;
+    const { unmount } = render(<C />);
+    await userEvent.click(screen.getByRole("button", { name: "Sample" }));
+    expect(localStorage.getItem("devkit.jsonFormat.doc")).toContain("devkit");
+    unmount();
+
+    handoff.takeHandoff.mockReturnValue({ kind: "text", text: '{"from":"diff"}' });
+    render(<C />);
+    expect(JSON.parse(localStorage.getItem("devkit.jsonFormat.doc")!).text).toBe('{"from":"diff"}');
   });
 });

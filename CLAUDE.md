@@ -45,6 +45,8 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   `jsoneditor.css`; `diff.ts` = structural diff, change list, split geometry). JSON Diff reproduces the owner's
   offline `jsoneditor.html` compare view. The old JSON Editor tool was merged into them; `TOOL_ALIASES` in
   `registry.ts` keeps its id (`json-editor` → `json-format`) working for favourites, recents and the last tool.
+- JSON Format and JSON Diff save their documents and view state to localStorage on every change (edit, open,
+  copy, swap, sample, hand-off), not on unmount, so a restart or quit never loses them.
 - Keep-alive: the shell keeps the last `KEEP_ALIVE` (6) opened tools mounted, the others `hidden` + `inert`, so
   input survives switching (`useKeepAlive` in `App.tsx`). A hidden tool must not react to window-wide events or keep
   polling: gate paste listeners, Tauri `onDragDropEvent` and auto-refresh intervals on `useToolActive()`
@@ -113,7 +115,8 @@ browser, so `npm run dev` shows an explanation instead of crashing).
   event (`src/app/menuEvents.ts`); inside the app the page doesn't also handle ⌘K / ⌘, / ⌘E / ⌘/.
 - localStorage keys (never rename): `devkit.theme`, `devkit.lastTool`, `devkit.favorites`, `devkit.recent`,
   `devkit.settings`, `devkit.whatsNew.lastVersion`, `devkit.jsonEditor.split`, `devkit.jsonDiff.docs` (both JSON Diff
-  documents + file names, saved on every edit/open/copy/swap so they survive a restart), `devkit.gitlab` (token stays on
+  documents, file names, each side's text/tree/table view, Compare switch, Changes list open), `devkit.jsonFormat`
+  (view, indent, big numbers, schema), `devkit.jsonFormat.doc` (the document as text + file name), `devkit.gitlab` (token stays on
   this Mac).
 - DevKit is a **public** repo: tools ported from the owner's work scripts (GitLab dashboard) carry no company
   hosts, user names or group names — the user types them in the app.
